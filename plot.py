@@ -67,6 +67,21 @@ class ImageSettings(NamedTuple):
     cmap: str
 
 
+class PlotSettings(NamedTuple):
+    """The plotting parameters used when plotting a line plot.
+
+    Attributes
+    ----------
+    vmin : float
+        the minimum value covered by color maps.
+    vmax : float
+        the maximum value covered by color maps.
+    cmap : str
+        the color map to be used.
+    """
+    pass
+
+
 class Plotter(ABC):
     """An abstract class that serves as an interface for different plotting backends."""
 
@@ -97,6 +112,25 @@ class Plotter(ABC):
         axis_index : int
             the index of the primary axis to draw the image to.
         plot_args : ImageSettings
+            the parameters to use when drawing.
+        """
+        pass
+
+    @abstractmethod
+    def draw_plot(
+        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+    ):
+        """Plot `y` against `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : PlotSettings
             the parameters to use when drawing.
         """
         pass
@@ -216,10 +250,28 @@ class MplNotebookPlotter(Plotter):
         )
         # Create a colorbar
         self._sub_axes[axis_index - 1]["colorbar"] = self._fig.colorbar(
-            img, ax=self._axes[axis_index - 1]
+            img, ax=self._axes[axis_index - 1], fraction=0.046, pad=0.04
         )
         # Invert y-axis so (0, 0) is in the bottom left
         self._axes[axis_index - 1].invert_yaxis()
+
+    def draw_plot(
+        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+    ):
+        """Plot `y` against `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : PlotSettings
+            the parameters to use when drawing.
+        """
+        self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):
         """Sets the title of a plot.
@@ -354,9 +406,27 @@ class MplPngPlotter(Plotter):
             data, vmin=plot_args.vmin, vmax=plot_args.vmax, cmap=plot_args.cmap
         )
         # Create a colorbar
-        self._fig.colorbar(img, ax=self._axes[axis_index - 1])
+        self._fig.colorbar(img, ax=self._axes[axis_index - 1], fraction=0.046, pad=0.04)
         # Invert y-axis so (0, 0) is in the bottom left
         self._axes[axis_index - 1].invert_yaxis()
+
+    def draw_plot(
+        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+    ):
+        """Plot `y` against `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : PlotSettings
+            the parameters to use when drawing.
+        """
+        self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):
         """Sets the title of a plot.
@@ -493,9 +563,27 @@ class MplMp4Plotter(Plotter):
             data, vmin=plot_args.vmin, vmax=plot_args.vmax, cmap=plot_args.cmap
         )
         # Create a colorbar
-        self._fig.colorbar(img, ax=self._axes[axis_index - 1])
+        self._fig.colorbar(img, ax=self._axes[axis_index - 1], fraction=0.046, pad=0.04)
         # Invert y-axis so (0, 0) is in the bottom left
         self._axes[axis_index - 1].invert_yaxis()
+
+    def draw_plot(
+        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+    ):
+        """Plot `y` against `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : PlotSettings
+            the parameters to use when drawing.
+        """
+        self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):
         """Sets the title of a plot.

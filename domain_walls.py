@@ -9,8 +9,12 @@ from tqdm import tqdm
 
 # Internal modules
 from fields import evolve_field, evolve_velocity
-from plot import Plotter, PlotterSettings, ImageSettings
-from utils import laplacian2D
+from plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from utils import (
+    laplacian2D,
+    find_domain_walls_convolve_cardinal,
+    find_domain_walls_convolve_diagonal,
+)
 
 
 def evolve_acceleration_dw(
@@ -124,10 +128,17 @@ def run_domain_wall_simulation(
     # Set up plotting backend
     plotter = plot_backend(
         PlotterSettings(
-            title="Domain wall simulation", nrows=1, ncols=1, figsize=(640, 480)
+            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
         )
     )
     draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
+    higlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="twilight")
+    line_settings = PlotSettings()
+
+    # Initialise wall count
+    iterations = list(range(run_time))
+    wall_count = np.empty(run_time)
+    wall_count.fill(np.nan)
 
     # Run loop
     for i in tqdm(range(run_time)):
@@ -146,10 +157,23 @@ def run_domain_wall_simulation(
         # Evolve phidotdot
         phidotdot = next_phidotdot
 
+        # Find domain walls
+        walls = find_domain_walls_convolve_cardinal(phi)
+        wall_count[i] = np.count_nonzero(walls)
+
         # Plot
         plotter.reset()
+        # Real field
         plotter.draw_image(phi, 1, draw_settings)
         plotter.set_title(r"$\phi$", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
+        # Highlight walls
+        plotter.draw_image(walls, 2, higlight_settings)
+        plotter.set_title(r"Domain walls", 2)
+        plotter.set_axes_labels(r"$x$", r"$y$", 2)
+        # Plot wall count
+        plotter.draw_plot(iterations, wall_count, 3, line_settings)
+        plotter.set_title(r"Domain wall count", 3)
+        plotter.set_axes_labels(r"Iteration $i$", r"Number of Walls", 3)
         plotter.flush()
     plotter.close()
