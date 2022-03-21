@@ -1,6 +1,7 @@
 """This file contains the necessary functions to run a cosmic string simulation."""
 
 # Standard modules
+from audioop import cross
 from typing import Optional, Type
 
 # External modules
@@ -141,10 +142,11 @@ def run_cosmic_string_simulation(
     # Set up plotting backend
     plotter = plot_backend(
         PlotterSettings(
-            title="Cosmic string simulation", nrows=1, ncols=1, figsize=(640, 480)
+            title="Cosmic string simulation", nrows=1, ncols=2, figsize=(640, 480)
         )
     )
     draw_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="viridis")
 
     # Run loop
     for i in tqdm(range(run_time)):
@@ -175,10 +177,124 @@ def run_cosmic_string_simulation(
         phidotdot_real = next_phidotdot_real
         phidotdot_imaginary = next_phidotdot_imaginary
 
+        strings = find_cosmic_strings_brute_force(phi_real, phi_imaginary)
+
         # Plot
         plotter.reset()
+        # Theta
         plotter.draw_image(np.arctan2(phi_imaginary, phi_real), 1, draw_settings)
         plotter.set_title(r"$\theta$", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
+        # Strings
+        plotter.draw_image(strings, 2, highlight_settings)
+        plotter.set_title(r"Strings", 2)
+        plotter.set_axes_labels(r"$x$", r"$y$", 2)
         plotter.flush()
     plotter.close()
+
+
+def real_crossing(current_imaginary, next_imaginary) -> bool:
+    return current_imaginary * next_imaginary < 0
+
+
+def crossing_handedness(
+    current_real, current_imaginary, next_real, next_imaginary
+) -> float:
+    result = next_real * current_imaginary - current_real * next_imaginary
+    return np.sign(result)
+
+
+def check_plaquette(top_left, top_right, bottom_right, bottom_left) -> float:
+    result = 0
+    # Check top left to top right link
+    if real_crossing(top_left[1], top_right[1]):
+        result += crossing_handedness(
+            top_left[0], top_left[1], top_right[0], top_right[1]
+        )
+    # Check top right to bottom right link
+    if real_crossing(top_right[1], bottom_right[1]):
+        result += crossing_handedness(
+            top_right[0], top_right[1], bottom_right[0], bottom_right[1]
+        )
+    # Check bottom right to bottom left link
+    if real_crossing(bottom_right[1], bottom_left[1]):
+        result += crossing_handedness(
+            bottom_right[0], bottom_right[1], bottom_left[0], bottom_left[1]
+        )
+    # Check bottom left to top left link
+    if real_crossing(bottom_left[1], top_left[1]):
+        result += crossing_handedness(
+            bottom_left[0], bottom_left[1], top_left[0], top_left[1]
+        )
+    return np.sign(result)
+
+
+def find_cosmic_strings_brute_force(
+    real_component: np.ndarray, imaginary_component: np.ndarray
+) -> np.ndarray:
+    M = np.shape(real_component)[0]
+    N = np.shape(real_component)[1]
+    highlighted = np.zeros(np.shape(real_component))
+    for i in range(M):
+        for j in range(N):
+            current_real = real_component[i][j]
+            current_imaginary = imaginary_component[i][j]
+            # Horizonal
+            left_real = real_component[np.mod(i - 1, M)][j]
+            right_real = real_component[np.mod(i + 1, M)][j]
+            left_imaginary = imaginary_component[np.mod(i - 1, M)][j]
+            right_imaginary = imaginary_component[np.mod(i + 1, M)][j]
+            # Vertical
+            top_real = real_component[i][np.mod(j - 1, N)]
+            bottom_real = real_component[i][np.mod(j + 1, N)]
+            top_imaginary = imaginary_component[i][np.mod(j - 1, N)]
+            bottom_imaginary = imaginary_component[i][np.mod(j + 1, N)]
+            # Diagonals
+            top_left_real = real_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
+            top_right_real = real_component[np.mod(i + 1, M)][np.mod(j - 1, N)]
+            bottom_left_real = real_component[np.mod(i - 1, M)][np.mod(j + 1, N)]
+            bottom_right_real = real_component[np.mod(i + 1, M)][np.mod(j + 1, N)]
+            top_left_imaginary = imaginary_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
+            top_right_imaginary = imaginary_component[np.mod(i + 1, M)][
+                np.mod(j - 1, N)
+            ]
+            bottom_left_imaginary = imaginary_component[np.mod(i - 1, M)][
+                np.mod(j + 1, N)
+            ]
+            bottom_right_imaginary = imaginary_component[np.mod(i + 1, M)][
+                np.mod(j + 1, N)
+            ]
+
+            # Top left plaquette
+            highlighted[i][j] += check_plaquette(
+                (top_left_real, top_left_imaginary),
+                (top_real, top_imaginary),
+                (current_real, current_imaginary),
+                (left_real, left_imaginary),
+            )
+
+            # Top right plaquette
+            highlighted[i][j] += check_plaquette(
+                (top_real, top_imaginary),
+                (top_right_real, top_right_imaginary),
+                (right_real, right_imaginary),
+                (current_real, current_imaginary),
+            )
+
+            # Bottom right plaquette
+            highlighted[i][j] += check_plaquette(
+                (current_real, current_imaginary),
+                (right_real, right_imaginary),
+                (bottom_right_real, bottom_right_imaginary),
+                (bottom_real, bottom_imaginary),
+            )
+
+            # Bottom left plaquette
+            highlighted[i][j] += check_plaquette(
+                (left_real, left_imaginary),
+                (current_real, current_imaginary),
+                (bottom_real, bottom_imaginary),
+                (bottom_left_real, bottom_left_imaginary),
+            )
+
+    return highlighted
