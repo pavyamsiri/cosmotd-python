@@ -340,9 +340,11 @@ def run_charged_domain_walls_simulation(
 
         # Plot
         plotter.reset()
+        # Real field
         plotter.draw_image(phi, 1, phi_draw_settings)
         plotter.set_title(r"$\phi$", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
+        # Complex field
         plotter.draw_image(sigma_real, 2, sigma_draw_settings)
         plotter.set_title(r"$\Re{\sigma}$", 2)
         plotter.set_axes_labels(r"$x$", r"$y$", 2)
