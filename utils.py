@@ -153,7 +153,6 @@ Domain Wall Detection
 """
 
 
-@jit(nopython=True)
 def find_domain_walls_convolve_diagonal(field: np.ndarray) -> np.ndarray:
     """Returns an array that has the same size as the input array `field`, that is zero everywhere except at domain walls.
     This is done through matrix convolution with periodic boundary conditions to find zero crossings. This particular function
@@ -186,7 +185,6 @@ def find_domain_walls_convolve_diagonal(field: np.ndarray) -> np.ndarray:
     return highlighted
 
 
-@jit(nopython=True)
 def find_domain_walls_convolve_cardinal(field: np.ndarray) -> np.ndarray:
     """Returns an array that has the same size as the input array `field`, that is zero everywhere except at domain walls.
     This is done through matrix convolution with periodic boundary conditions to find zero crossings. This particular function

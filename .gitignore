@@ -6,3 +6,4 @@ __pycache__
 # Temporary folders
 plot_cache
 video_cache
+to_keep
