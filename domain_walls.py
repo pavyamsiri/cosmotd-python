@@ -158,7 +158,7 @@ def run_domain_wall_simulation(
         phidotdot = next_phidotdot
 
         # Find domain walls
-        walls = find_domain_walls_convolve_cardinal(phi)
+        walls = find_domain_walls_convolve_diagonal(phi)
         wall_count[i] = np.count_nonzero(walls)
 
         # Plot
@@ -175,5 +175,6 @@ def run_domain_wall_simulation(
         plotter.draw_plot(iterations, wall_count, 3, line_settings)
         plotter.set_title(r"Domain wall count", 3)
         plotter.set_axes_labels(r"Iteration $i$", r"Number of Walls", 3)
+        plotter.set_axes_limits(0, run_time, None, None, 3)
         plotter.flush()
     plotter.close()

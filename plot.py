@@ -3,8 +3,9 @@
 # Standard modules
 from abc import ABC, abstractmethod
 import glob
-from typing import NamedTuple, Tuple, TypeAlias
 import os
+from typing import NamedTuple, Tuple, TypeAlias, Optional
+
 
 # External modules
 import ffmpeg
@@ -79,6 +80,7 @@ class PlotSettings(NamedTuple):
     cmap : str
         the color map to be used.
     """
+
     pass
 
 
@@ -164,11 +166,146 @@ class Plotter(ABC):
         pass
 
     @abstractmethod
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        x_min : Optional[float]
+            the minimum x value.
+        x_max : Optional[float]
+            the maximum x value.
+        y_min : Optional[float]
+            the minimum y value.
+        y_max : Optional[float]
+            the maximum y value.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        pass
+
+    @abstractmethod
     def flush(self):
         """Draws all elements."""
         pass
 
     @abstractmethod
+    def close(self):
+        """Closes the plotter and any resources it may be using."""
+        pass
+
+
+class MockPlotter(Plotter):
+    """An abstract class that serves as an interface for different plotting backends."""
+
+    def __init__(self, settings: PlotterSettings):
+        """Constructs a plotter configured by the given settings.
+
+        Parameters
+        ----------
+        settings : PlotterSettings
+            settings used to configure plotting.
+        """
+        pass
+
+    def reset(self):
+        """Clear the plotting canvas."""
+        pass
+
+    def draw_image(self, data: np.ndarray, axis_index: int, plot_args: ImageSettings):
+        """Draws an image from a 2D array.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            the 2D array to draw.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : ImageSettings
+            the parameters to use when drawing.
+        """
+        pass
+
+    def draw_plot(
+        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+    ):
+        """Plot `y` against `x`.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the image to.
+        plot_args : PlotSettings
+            the parameters to use when drawing.
+        """
+        pass
+
+    def set_title(self, title: str, axis_index: int):
+        """Sets the title of a plot.
+
+        Parameters
+        ----------
+        title : str
+            the title to set.
+        axis_index : int
+            the index of the primary axis to set the title of.
+        """
+        pass
+
+    def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        xlabel : str
+            the label of the x axis.
+        ylabel : str
+            the label of the y axis.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        pass
+
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        x_min : Optional[float]
+            the minimum x value.
+        x_max : Optional[float]
+            the maximum x value.
+        y_min : Optional[float]
+            the minimum y value.
+        y_max : Optional[float]
+            the maximum y value.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        pass
+
+    def flush(self):
+        """Draws all elements."""
+        pass
+
     def close(self):
         """Closes the plotter and any resources it may be using."""
         pass
@@ -301,6 +438,32 @@ class MplNotebookPlotter(Plotter):
         # Set x and y labels
         self._axes[axis_index - 1].set_xlabel(xlabel)
         self._axes[axis_index - 1].set_ylabel(ylabel)
+
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        x_min : Optional[float]
+            the minimum x value.
+        x_max : Optional[float]
+            the maximum x value.
+        y_min : Optional[float]
+            the minimum y value.
+        y_max : Optional[float]
+            the maximum y value.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        self._axes[axis_index - 1].set_xlim(x_min, x_max)
+        self._axes[axis_index - 1].set_ylim(y_min, y_max)
 
     def flush(self):
         """Draws all elements."""
@@ -457,6 +620,32 @@ class MplPngPlotter(Plotter):
         self._axes[axis_index - 1].set_xlabel(xlabel)
         self._axes[axis_index - 1].set_ylabel(ylabel)
 
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        x_min : Optional[float]
+            the minimum x value.
+        x_max : Optional[float]
+            the maximum x value.
+        y_min : Optional[float]
+            the minimum y value.
+        y_max : Optional[float]
+            the maximum y value.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        self._axes[axis_index - 1].set_xlim(x_min, x_max)
+        self._axes[axis_index - 1].set_ylim(y_min, y_max)
+
     def flush(self):
         """Saves the figure as a png in a cache."""
         plt.tight_layout()
@@ -612,6 +801,32 @@ class MplMp4Plotter(Plotter):
         # Set x and y labels
         self._axes[axis_index - 1].set_xlabel(xlabel)
         self._axes[axis_index - 1].set_ylabel(ylabel)
+
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
+        """Sets the labels of the x and y axes.
+
+        Parameters
+        ----------
+        x_min : Optional[float]
+            the minimum x value.
+        x_max : Optional[float]
+            the maximum x value.
+        y_min : Optional[float]
+            the minimum y value.
+        y_max : Optional[float]
+            the maximum y value.
+        axis_index : int
+            the index of the primary axis to set the axes labels of.
+        """
+        self._axes[axis_index - 1].set_xlim(x_min, x_max)
+        self._axes[axis_index - 1].set_ylim(y_min, y_max)
 
     def flush(self):
         """Saves the figure as a png in a cache."""
