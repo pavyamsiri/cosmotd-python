@@ -2,8 +2,3 @@
 __pycache__
 .ipynb_checkpoints
 .vscode
-
-# Temporary folders
-plot_cache
-video_cache
-to_keep
