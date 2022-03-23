@@ -8,11 +8,10 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
-from fields import evolve_field, evolve_velocity
-from plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
-from utils import (
+from .fields import evolve_field, evolve_velocity
+from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .utils import (
     laplacian2D,
-    find_domain_walls_convolve_cardinal,
     find_domain_walls_convolve_diagonal,
 )
 

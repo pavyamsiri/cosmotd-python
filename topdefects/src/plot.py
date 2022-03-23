@@ -16,8 +16,8 @@ import numpy as np
 
 # Constants
 DPI: int = 100
-PLOT_CACHE: str = "plot_cache"
-VIDEO_CACHE: str = "video_cache"
+PLOT_CACHE: str = "data/plot_cache"
+VIDEO_CACHE: str = "data/video_cache"
 
 # Type aliases
 # Matplotlib figures
@@ -515,15 +515,6 @@ class MplPngPlotter(Plotter):
         """
         # Set backend to a rasterizer to optimise for pngs.
         matplotlib.use("agg")
-        # Make sure there is a plot cache folder
-        if os.path.isdir(PLOT_CACHE):
-            # Clear the folder
-            files = glob.glob(f"{PLOT_CACHE}/*.png")
-            for png in files:
-                os.remove(png)
-        else:
-            # Create the cache folder
-            os.mkdir(PLOT_CACHE)
         # Save plot configuration
         self._dpi = DPI
         self._figsize = (
@@ -649,9 +640,13 @@ class MplPngPlotter(Plotter):
     def flush(self):
         """Saves the figure as a png in a cache."""
         plt.tight_layout()
+        # Construct file name
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        file_name = f"{src_folder}/../{PLOT_CACHE}/frame_{self._count}.png"
+
         # Save figure as png
         plt.savefig(
-            f"{PLOT_CACHE}\\frame_{self._count}.png",
+            file_name,
             facecolor="white",
             transparent=False,
         )
@@ -695,19 +690,6 @@ class MplMp4Plotter(Plotter):
     def __init__(self, settings: PlotterSettings):
         # Set backend to a rasterizer to optimise for pngs.
         matplotlib.use("agg")
-        # Make sure there is a plot cache folder
-        if os.path.isdir(PLOT_CACHE):
-            # Clear the folder
-            files = glob.glob(f"{PLOT_CACHE}/*.png")
-            for png in files:
-                os.remove(png)
-        else:
-            # Create the cache folder
-            os.mkdir(PLOT_CACHE)
-        # Make sure there is a plot cache folder
-        if not os.path.isdir(VIDEO_CACHE):
-            # Create the cache folder
-            os.mkdir(VIDEO_CACHE)
         # Save plot configuration
         self._dpi = DPI
         self._figsize = (
@@ -831,9 +813,13 @@ class MplMp4Plotter(Plotter):
     def flush(self):
         """Saves the figure as a png in a cache."""
         plt.tight_layout()
+        # Construct file name
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        file_name = f"{src_folder}/../{PLOT_CACHE}/frame_{self._count}.png"
+
         # Save figure as png
         plt.savefig(
-            f"{PLOT_CACHE}\\frame_{self._count}.png",
+            file_name,
             facecolor="white",
             transparent=False,
         )
@@ -844,13 +830,17 @@ class MplMp4Plotter(Plotter):
 
     def close(self):
         """Stitches the png sequence created during flushes together into an mp4."""
+        # Construct file names
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        input_file_template = f"{src_folder}/../{PLOT_CACHE}/frame_%d.png"
+        output_file = f"{src_folder}/../{VIDEO_CACHE}/simulation.mp4"
         (
             ffmpeg.input(
-                f"{PLOT_CACHE}\\frame_%d.png",
+                input_file_template,
                 framerate=20,
                 y=None,
             )
-            .output(f"{VIDEO_CACHE}\\simulation.mp4", crf=25, pix_fmt="yuv420p")
+            .output(output_file, crf=25, pix_fmt="yuv420p")
             .overwrite_output()
             .run()
         )

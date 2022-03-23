@@ -8,9 +8,9 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
-from fields import evolve_field, evolve_velocity
-from plot import Plotter, PlotterSettings, ImageSettings
-from utils import laplacian2D
+from .fields import evolve_field, evolve_velocity
+from .plot import Plotter, PlotterSettings, ImageSettings
+from .utils import laplacian2D
 
 
 def evolve_real_acceleration_cdw(

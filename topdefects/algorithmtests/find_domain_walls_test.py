@@ -9,13 +9,13 @@ from typing import Tuple
 import numpy as np
 
 # Internal modules
-from src.utils import (
+from topdefects.src.utils import (
     find_domain_walls_convolve_cardinal,
     find_domain_walls_convolve_diagonal,
 )
 
 # Correction factor between grid counts and smooth edges
-CORRECTION_FACTOR = np.pi / 4
+CORRECTION_FACTOR: float = np.pi / 4
 
 
 class CardinalDiagonalComparisonResult(Enum):
@@ -34,6 +34,56 @@ class CardinalDiagonalComparisonResult(Enum):
     Both = 0
     Cardinal = 1
     Diagonal = 2
+
+
+def compare_cardinal_diagonal_many_circles_with_display(
+    min_radius: int, max_radius: int
+):
+    """Performs a comparison between the cardinal only and diagonal inclusive domain wall detection algorithms over a range of
+    circles of different radii. This also displays the result to the terminal and plots the estimates of both methods against
+    the true circumferences.
+
+    Parameters
+    ----------
+    min_radius : int
+        the minimum circle radius to test.
+    max_radius : int
+        the maximum circle radius to test.
+    """
+    # Import plotting library
+    from matplotlib import pyplot as plt
+
+    # Perform the comparison
+    best_method, (
+        circumferences,
+        cardinal_lengths,
+        diagonal_lengths,
+    ) = compare_cardinal_diagonal_many_circles(min_radius, max_radius)
+
+    # Print to terminal the result
+    if best_method == CardinalDiagonalComparisonResult.Both:
+        print("Both methods are equally accurate.")
+    elif best_method == CardinalDiagonalComparisonResult.Cardinal:
+        print("The cardinal only method is more accurate.")
+    elif best_method == CardinalDiagonalComparisonResult.Diagonal:
+        print("The diagonal inclusive method is more accurate.")
+
+    # Plot
+    x_axis = list(range(min_radius, max_radius + 1))
+    plt.plot(x_axis, circumferences, "-k")
+    plt.plot(x_axis, cardinal_lengths, "--b")
+    plt.plot(x_axis, diagonal_lengths, "--r")
+    plt.title(
+        "Comparison between the cardinal only and diagonal inclusive domain wall detection algorithms"
+    )
+    plt.xlabel(r"Radius $r$")
+    plt.ylabel(r"Circumference")
+    plt.legend(
+        ["True Circumference", "Cardinal Only Estimate", "Diagonal Inclusive Estimate"]
+    )
+    plt.xlim(left=0)
+    plt.ylim(bottom=0)
+    plt.show()
 
 
 def compare_cardinal_diagonal_many_circles(
@@ -115,58 +165,8 @@ def compare_cardinal_diagonal_many_circles(
     return (best_method, (circumferences, cardinal_lengths, diagonal_lengths))
 
 
-def compare_cardinal_diagonal_many_circles_with_display(
-    min_radius: int, max_radius: int
-):
-    """Performs a comparison between the cardinal only and diagonal inclusive domain wall detection algorithms over a range of
-    circles of different radii. This also displays the result to the terminal and plots the estimates of both methods against
-    the true circumferences.
-
-    Parameters
-    ----------
-    min_radius : int
-        the minimum circle radius to test.
-    max_radius : int
-        the maximum circle radius to test.
-    """
-    # Import plotting library
-    from matplotlib import pyplot as plt
-
-    # Perform the comparison
-    best_method, (
-        circumferences,
-        cardinal_lengths,
-        diagonal_lengths,
-    ) = compare_cardinal_diagonal_many_circles(min_radius, max_radius)
-
-    # Print to terminal the result
-    if best_method == CardinalDiagonalComparisonResult.Both:
-        print("Both methods are equally accurate.")
-    elif best_method == CardinalDiagonalComparisonResult.Cardinal:
-        print("The cardinal only method is more accurate.")
-    elif best_method == CardinalDiagonalComparisonResult.Diagonal:
-        print("The diagonal inclusive method is more accurate.")
-
-    # Plot
-    x_axis = list(range(min_radius, max_radius + 1))
-    plt.plot(x_axis, circumferences, "-k")
-    plt.plot(x_axis, cardinal_lengths, "--b")
-    plt.plot(x_axis, diagonal_lengths, "--r")
-    plt.title(
-        "Comparison between the cardinal only and diagonal inclusive domain wall detection algorithms"
-    )
-    plt.xlabel(r"Radius $r$")
-    plt.ylabel(r"Circumference")
-    plt.legend(
-        ["True Circumference", "Cardinal Only Estimate", "Diagonal Inclusive Estimate"]
-    )
-    plt.xlim(left=0)
-    plt.ylim(bottom=0)
-    plt.show()
-
-
 if __name__ == "__main__":
     # Testing which method is better
     min_radius = 1
-    max_radius = 200
+    max_radius = 100
     compare_cardinal_diagonal_many_circles_with_display(min_radius, max_radius)
