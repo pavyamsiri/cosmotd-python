@@ -9,7 +9,7 @@ from typing import Tuple
 import numpy as np
 
 # Internal modules
-from topdefects.src.utils import (
+from topdefects.src.domain_wall_algorithms import (
     find_domain_walls_convolve_cardinal,
     find_domain_walls_convolve_diagonal,
 )
