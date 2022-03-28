@@ -8,11 +8,11 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
+from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
 from .fields import evolve_field, evolve_velocity
 from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
 from .utils import (
     laplacian2D,
-    find_domain_walls_convolve_diagonal,
 )
 
 
@@ -131,13 +131,16 @@ def run_domain_wall_simulation(
         )
     )
     draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
-    higlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="twilight")
+    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="twilight")
     line_settings = PlotSettings()
 
     # Initialise wall count
     iterations = list(range(run_time))
     wall_count = np.empty(run_time)
     wall_count.fill(np.nan)
+    # Energies
+    ratios = np.empty(run_time)
+    ratios.fill(np.nan)
 
     # Run loop
     for i in tqdm(range(run_time)):
@@ -160,6 +163,14 @@ def run_domain_wall_simulation(
         walls = find_domain_walls_convolve_diagonal(phi)
         wall_count[i] = np.count_nonzero(walls)
 
+        # Calculate the energy
+        energy = hamiltonian(phi, phidot, eta, w, N, dx)
+        masked_walls = np.ma.masked_values(walls, 0)
+        ratio = np.sum(
+            np.ma.masked_where(np.ma.getmask(masked_walls), energy)
+        ) / np.sum(energy)
+        ratios[i] = ratio
+
         # Plot
         plotter.reset()
         # Real field
@@ -167,13 +178,52 @@ def run_domain_wall_simulation(
         plotter.set_title(r"$\phi$", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
         # Highlight walls
-        plotter.draw_image(walls, 2, higlight_settings)
+        plotter.draw_image(walls, 2, highlight_settings)
         plotter.set_title(r"Domain walls", 2)
         plotter.set_axes_labels(r"$x$", r"$y$", 2)
-        # Plot wall count
-        plotter.draw_plot(iterations, wall_count, 3, line_settings)
-        plotter.set_title(r"Domain wall count", 3)
-        plotter.set_axes_labels(r"Iteration $i$", r"Number of Walls", 3)
-        plotter.set_axes_limits(0, run_time, None, None, 3)
+        # Plot energy
+        plotter.draw_plot(iterations, ratios, 3, line_settings)
+        plotter.set_title("Domain wall energy", 3)
+        plotter.set_axes_labels(r"Iteration $i$", r"$\frac{H_{DW}}{H}$", 3)
+        plotter.set_axes_limits(0, run_time, 0, 1, 3)
         plotter.flush()
     plotter.close()
+
+
+"""
+Hamiltonian
+"""
+
+
+def hamiltonian(
+    field: np.ndarray, velocity: np.ndarray, eta: float, w: float, N: int, dx: float
+) -> np.ndarray:
+    """Calculates the Hamiltonian of a real scalar field.
+
+    Parameters
+    ----------
+    field : np.ndarray
+        the field.
+    velocity : np.ndarray
+        the velocity of the field.
+    eta : float
+        the location of the symmetry broken minima.
+    w : float
+        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
+    N : int
+        the size of the field.
+    dx : the spacing between field grid points.
+
+    Returns
+    -------
+    energy : np.ndarray
+        the energy of the field.
+    """
+    # Kinetic energy
+    energy = 0.5 * velocity**2
+    # Gradient energy
+    energy -= 0.5 * laplacian2D(field, dx, N)
+    # Potential energy
+    energy += (2 * np.pi**2.0 / w**2.0) / 4 * (field**2.0 - eta**2) ** 2
+
+    return energy

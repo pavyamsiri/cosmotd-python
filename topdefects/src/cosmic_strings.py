@@ -9,9 +9,10 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
+from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, ImageSettings
-from .utils import laplacian2D, find_cosmic_strings_brute_force_small
+from .utils import laplacian2D
 
 
 def evolve_acceleration_cs(
