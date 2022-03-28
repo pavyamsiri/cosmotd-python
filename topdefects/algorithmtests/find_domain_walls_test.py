@@ -61,12 +61,13 @@ def compare_cardinal_diagonal_many_circles_with_display(
     ) = compare_cardinal_diagonal_many_circles(min_radius, max_radius)
 
     # Print to terminal the result
-    if best_method == CardinalDiagonalComparisonResult.Both:
-        print("Both methods are equally accurate.")
-    elif best_method == CardinalDiagonalComparisonResult.Cardinal:
-        print("The cardinal only method is more accurate.")
-    elif best_method == CardinalDiagonalComparisonResult.Diagonal:
-        print("The diagonal inclusive method is more accurate.")
+    match best_method:
+        case CardinalDiagonalComparisonResult.Both:
+            print("Both methods are equally accurate.")
+        case CardinalDiagonalComparisonResult.Cardinal:
+            print("The cardinal only method is more accurate.")
+        case CardinalDiagonalComparisonResult.Diagonal:
+            print("The diagonal inclusive method is more accurate.")
 
     # Plot
     x_axis = list(range(min_radius, max_radius + 1))
