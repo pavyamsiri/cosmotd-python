@@ -515,6 +515,13 @@ class MplPngPlotter(Plotter):
         """
         # Set backend to a rasterizer to optimise for pngs.
         matplotlib.use("agg")
+
+        # Delete frames in plot_cache
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        file_name = f"{src_folder}/../{PLOT_CACHE}/frame_*.png"
+        for plot_file in glob.glob(file_name):
+            os.remove(plot_file)
+
         # Save plot configuration
         self._dpi = DPI
         self._figsize = (
@@ -690,6 +697,13 @@ class MplMp4Plotter(Plotter):
     def __init__(self, settings: PlotterSettings):
         # Set backend to a rasterizer to optimise for pngs.
         matplotlib.use("agg")
+
+        # Delete frames in plot_cache
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        file_name = f"{src_folder}/../{PLOT_CACHE}/frame_*.png"
+        for plot_file in glob.glob(file_name):
+            os.remove(plot_file)
+
         # Save plot configuration
         self._dpi = DPI
         self._figsize = (
