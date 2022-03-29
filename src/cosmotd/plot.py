@@ -408,6 +408,7 @@ class MplNotebookPlotter(Plotter):
         plot_args : PlotSettings
             the parameters to use when drawing.
         """
+        self._axes[axis_index - 1].set_autoscale_on(False)
         self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):
@@ -587,6 +588,7 @@ class MplPngPlotter(Plotter):
         plot_args : PlotSettings
             the parameters to use when drawing.
         """
+        self._axes[axis_index - 1].set_autoscale_on(False)
         self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):
@@ -768,6 +770,7 @@ class MplMp4Plotter(Plotter):
         plot_args : PlotSettings
             the parameters to use when drawing.
         """
+        self._axes[axis_index - 1].set_autoscale_on(False)
         self._axes[axis_index - 1].plot(x, y)
 
     def set_title(self, title: str, axis_index: int):

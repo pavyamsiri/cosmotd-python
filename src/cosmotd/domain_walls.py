@@ -9,62 +9,55 @@ from tqdm import tqdm
 
 # Internal modules
 from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
-from .fields import evolve_field, evolve_velocity
+from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
 from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
-from .utils import (
-    laplacian2D,
-)
 
 
-def evolve_acceleration_dw(
-    field: np.ndarray,
-    velocity: np.ndarray,
-    alpha: float,
-    eta: float,
-    era: float,
-    w: float,
-    N: int,
-    dx: float,
-    t: float,
-) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
+    """Calculates the Z2 symmetry breaking potential acting on a field.
 
     Parameters
     ----------
     field : np.ndarray
         the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
     eta : float
         the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
-        the evolved acceleration.
+    potential : np.ndarray
+        the potential.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(field, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
+    potential = lam / 4 * (field**2 - eta**2) ** 2
+    return potential
+
+
+def potential_derivative_dw(
+    field: np.ndarray,
+    eta: float,
+    lam: float,
+) -> np.ndarray:
+    """Calculates the derivative of the Z2 symmetry breaking potential with respect to phi.
+
+    Parameters
+    ----------
+    field : np.ndarray
+        the field.
+    eta : float
+        the location of the symmetry broken minima.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+
+    Returns
+    -------
+    potential_derivative : np.ndarray
+        the derivative of the potential.
+    """
     # Potential term
-    evolved_acceleration -= (
-        (2 * np.pi**2.0 / w**2.0) * (field**2.0 - eta**2) * field
-    )
-    return evolved_acceleration
+    potential_derivative = lam * (field**2.0 - eta**2) * field
+    return potential_derivative
 
 
 def run_domain_wall_simulation(
@@ -115,10 +108,15 @@ def run_domain_wall_simulation(
     else:
         np.random.seed()
 
+    # Preprocess constants
+    lam = 2 * np.pi**2 / w**2
+
     # Initialise field
     phi = 0.1 * np.random.normal(size=(N, N))
     phidot = np.zeros(shape=(N, N))
-    phidotdot = evolve_acceleration_dw(phi, phidot, alpha, eta, era, w, N, dx, t)
+    phidotdot = evolve_acceleration(
+        phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, t
+    )
 
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
@@ -131,7 +129,7 @@ def run_domain_wall_simulation(
         )
     )
     draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
-    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="twilight")
+    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="seismic")
     line_settings = PlotSettings()
 
     # Initialise wall count
@@ -150,8 +148,8 @@ def run_domain_wall_simulation(
         # Next timestep
         t = t + dt
 
-        next_phidotdot = evolve_acceleration_dw(
-            phi, phidot, alpha, eta, era, w, N, dx, t
+        next_phidotdot = evolve_acceleration(
+            phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, t
         )
         # Evolve phidot
         phidot = evolve_velocity(phidot, phidotdot, next_phidotdot, dt)
@@ -161,10 +159,10 @@ def run_domain_wall_simulation(
 
         # Find domain walls
         walls = find_domain_walls_convolve_diagonal(phi)
-        wall_count[i] = np.count_nonzero(walls)
+        wall_count[i] = np.count_nonzero(walls) / 2
 
         # Calculate the energy
-        energy = hamiltonian(phi, phidot, eta, w, N, dx)
+        energy = calculate_energy(phi, phidot, potential_dw(phi, eta, lam), dx)
         masked_walls = np.ma.masked_values(walls, 0)
         ratio = np.sum(
             np.ma.masked_where(np.ma.getmask(masked_walls), energy)
@@ -178,7 +176,7 @@ def run_domain_wall_simulation(
         plotter.set_title(r"$\phi$", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
         # Highlight walls
-        plotter.draw_image(walls, 2, highlight_settings)
+        plotter.draw_image(np.ma.masked_values(walls, 0), 2, highlight_settings)
         plotter.set_title(r"Domain walls", 2)
         plotter.set_axes_labels(r"$x$", r"$y$", 2)
         # Plot energy
@@ -188,42 +186,3 @@ def run_domain_wall_simulation(
         plotter.set_axes_limits(0, run_time, 0, 1, 3)
         plotter.flush()
     plotter.close()
-
-
-"""
-Hamiltonian
-"""
-
-
-def hamiltonian(
-    field: np.ndarray, velocity: np.ndarray, eta: float, w: float, N: int, dx: float
-) -> np.ndarray:
-    """Calculates the Hamiltonian of a real scalar field.
-
-    Parameters
-    ----------
-    field : np.ndarray
-        the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    eta : float
-        the location of the symmetry broken minima.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : the spacing between field grid points.
-
-    Returns
-    -------
-    energy : np.ndarray
-        the energy of the field.
-    """
-    # Kinetic energy
-    energy = 0.5 * velocity**2
-    # Gradient energy
-    energy -= 0.5 * laplacian2D(field, dx, N)
-    # Potential energy
-    energy += (2 * np.pi**2.0 / w**2.0) / 4 * (field**2.0 - eta**2) ** 2
-
-    return energy

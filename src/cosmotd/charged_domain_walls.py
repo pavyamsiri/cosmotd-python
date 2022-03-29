@@ -8,81 +8,52 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
-from .fields import evolve_field, evolve_velocity
+from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, ImageSettings
 from .utils import laplacian2D
 
 
-def evolve_real_acceleration_cdw(
+def potential_derivative_real_cdw(
     field: np.ndarray,
-    velocity: np.ndarray,
     complex_square_amplitude: np.ndarray,
-    alpha: float,
     beta: float,
     eta: float,
     lam: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Calculates the derivative of the charged domain wall potential with respect to the real scalar field.
 
     Parameters
     ----------
     field : np.ndarray
         the real scalar field.
-    velocity : np.ndarray
-        the velocity of the field.
     complex_square_amplitude : np.ndarray
         the square amplitude of the complex field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
     beta : float
         the strength of the coupling between the real and complex scalar fields.
     eta : float
         the location of the symmetry broken minima.
     lam : float
         the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
-        the evolved acceleration.
+    potential_derivative : np.ndarray
+        the potential derivative.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(field, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    evolved_acceleration -= lam * (field**2 - eta**2) * field
+    potential_derivative = lam * (field**2 - eta**2) * field
     # Coupling term
-    evolved_acceleration -= 2 * beta * field * complex_square_amplitude
-    return evolved_acceleration
+    potential_derivative += 2 * beta * field * complex_square_amplitude
+    return potential_derivative
 
 
-def evolve_complex_acceleration_cdw(
+def potential_derivative_complex_cdw(
     field: np.ndarray,
-    velocity: np.ndarray,
     other_field: np.ndarray,
     real_field: np.ndarray,
-    alpha: float,
     beta: float,
     eta: float,
     lam: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
     """
     Evolves the acceleration of one component of a complex scalar field.
@@ -93,6 +64,8 @@ def evolve_complex_acceleration_cdw(
         the component of a complex field.
     velocity : np.ndarray
         the velocity of the component of a complex field.
+    real_field : np.ndarray
+        the real scalar field.
     alpha : float
         a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
     beta : float
@@ -101,29 +74,17 @@ def evolve_complex_acceleration_cdw(
         the location of the symmetry broken minima.
     lam : float
         the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
-    era : float
-        the cosmological era.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
-        the evolved acceleration.
+    potential_derivative : np.ndarray
+        the potential derivative.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(field, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    evolved_acceleration -= lam * (field**2 + other_field**2 - eta**2) * field
+    potential_derivative = lam * (field**2 + other_field**2 - eta**2) * field
     # Coupling term
-    evolved_acceleration -= 2 * beta * real_field**2 * field
-    return evolved_acceleration
+    potential_derivative += 2 * beta * real_field**2 * field
+    return potential_derivative
 
 
 def run_charged_domain_walls_simulation(
@@ -207,44 +168,36 @@ def run_charged_domain_walls_simulation(
     complex_square_amplitude = sigma_real**2 + sigma_imaginary**2
 
     # Initialise acceleration
-    phidotdot = evolve_real_acceleration_cdw(
+    phidotdot = evolve_acceleration(
         phi,
         phidot,
-        complex_square_amplitude,
+        potential_derivative_real_cdw(
+            phi, complex_square_amplitude, beta, eta_phi, lam_phi
+        ),
         alpha,
-        beta,
-        eta_phi,
-        lam_phi,
         era,
-        N,
         dx,
         t,
     )
-    sigmadotdot_real = evolve_complex_acceleration_cdw(
+    sigmadotdot_real = evolve_acceleration(
         sigma_real,
         sigmadot_real,
-        sigma_imaginary,
-        phi,
+        potential_derivative_complex_cdw(
+            sigma_real, sigma_imaginary, phi, beta, eta_sigma, lam_sigma
+        ),
         alpha,
-        beta,
-        eta_sigma,
-        lam_sigma,
         era,
-        N,
         dx,
         t,
     )
-    sigmadotdot_imaginary = evolve_complex_acceleration_cdw(
+    sigmadotdot_imaginary = evolve_acceleration(
         sigma_imaginary,
         sigmadot_imaginary,
-        sigma_real,
-        phi,
+        potential_derivative_complex_cdw(
+            sigma_imaginary, sigma_real, phi, beta, eta_sigma, lam_sigma
+        ),
         alpha,
-        beta,
-        eta_sigma,
-        lam_sigma,
         era,
-        N,
         dx,
         t,
     )
@@ -283,44 +236,36 @@ def run_charged_domain_walls_simulation(
 
         complex_square_amplitude = sigma_real**2 + sigma_imaginary**2
 
-        next_phidotdot = evolve_real_acceleration_cdw(
+        next_phidotdot = evolve_acceleration(
             phi,
             phidot,
-            complex_square_amplitude,
+            potential_derivative_real_cdw(
+                phi, complex_square_amplitude, beta, eta_phi, lam_phi
+            ),
             alpha,
-            beta,
-            eta_phi,
-            lam_phi,
             era,
-            N,
             dx,
             t,
         )
-        next_sigmadotdot_real = evolve_complex_acceleration_cdw(
+        next_sigmadotdot_real = evolve_acceleration(
             sigma_real,
             sigmadot_real,
-            sigma_imaginary,
-            phi,
+            potential_derivative_complex_cdw(
+                sigma_real, sigma_imaginary, phi, beta, eta_sigma, lam_sigma
+            ),
             alpha,
-            beta,
-            eta_sigma,
-            lam_sigma,
             era,
-            N,
             dx,
             t,
         )
-        next_sigmadotdot_imaginary = evolve_complex_acceleration_cdw(
+        next_sigmadotdot_imaginary = evolve_acceleration(
             sigma_imaginary,
             sigmadot_imaginary,
-            sigma_real,
-            phi,
+            potential_derivative_complex_cdw(
+                sigma_imaginary, sigma_real, phi, beta, eta_sigma, lam_sigma
+            ),
             alpha,
-            beta,
-            eta_sigma,
-            lam_sigma,
             era,
-            N,
             dx,
             t,
         )

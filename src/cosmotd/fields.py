@@ -3,6 +3,9 @@
 # External modules
 import numpy as np
 
+# Internal modules
+from .utils import laplacian2D
+
 
 def evolve_field(
     field: np.ndarray, velocity: np.ndarray, acceleration: np.ndarray, dt: float
@@ -57,3 +60,78 @@ def evolve_velocity(
     """
     evolved_velocity = velocity + 0.5 * (current_acceleration + next_acceleration) * dt
     return evolved_velocity
+
+
+def evolve_acceleration(
+    field: np.ndarray,
+    velocity: np.ndarray,
+    potential_derivative: np.ndarray,
+    alpha: float,
+    era: float,
+    dx: float,
+    t: float,
+) -> np.ndarray:
+    """
+    Evolves the acceleration of a real scalar field.
+
+    Parameters
+    ----------
+    field : np.ndarray
+        the field.
+    velocity : np.ndarray
+        the velocity of the field.
+    potential_derivative : np.ndarray
+        the derivative of the potential with respect to the current field.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    era : float
+        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
+    dx : float
+        the spacing between field grid points.
+    t : float
+        the current time.
+
+    Returns
+    -------
+    evolved_acceleration : np.ndarray
+        the evolved acceleration.
+    """
+    # Laplacian term
+    evolved_acceleration = laplacian2D(field, dx)
+    # 'Damping' term
+    evolved_acceleration -= alpha * (era / t) * velocity
+    # Potential term
+    evolved_acceleration -= potential_derivative
+    return evolved_acceleration
+
+
+def calculate_energy(
+    field: np.ndarray, velocity: np.ndarray, potential: np.ndarray, dx: float
+) -> np.ndarray:
+    """Calculates the Hamiltonian of a real scalar field.
+
+    Parameters
+    ----------
+    field : np.ndarray
+        the field.
+    velocity : np.ndarray
+        the velocity of the field.
+    potential : np.ndarray
+        the potential acting on the field.
+    eta : float
+        the location of the symmetry broken minima.
+    dx : float
+        the spacing between field grid points.
+
+    Returns
+    -------
+    energy : np.ndarray
+        the energy of the field.
+    """
+    # Kinetic energy
+    energy = 0.5 * velocity**2
+    # Gradient energy
+    energy -= 0.5 * laplacian2D(field, dx)
+    # Potential energy
+    energy += potential
+    return energy

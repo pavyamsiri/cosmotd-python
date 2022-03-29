@@ -8,68 +8,43 @@ from typing import Optional, Type
 import numpy as np
 from tqdm import tqdm
 
+from cosmotd.domain_walls import potential_derivative_dw
+
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
-from .fields import evolve_field, evolve_velocity
+from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, ImageSettings
 from .utils import laplacian2D
 
 
-def evolve_acceleration_cs(
+def potential_derivative_cs(
     field: np.ndarray,
-    velocity: np.ndarray,
     other_field: np.ndarray,
-    alpha: float,
     eta: float,
-    era: float,
-    w: float,
-    N: int,
-    dx: float,
-    t: float,
+    lam: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of one component of a complex scalar field.
+    """Calculates the derivative of the cosmic string potential with respect to a field.
 
     Parameters
     ----------
     field : np.ndarray
         the component of a complex field.
-    velocity : np.ndarray
-        the velocity of the component of a complex field.
     other_field : np.ndarray
         the other component of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
     eta : float
         the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
-        the evolved acceleration.
+    potential_derivative : np.ndarray
+        the potential derivative.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(field, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    evolved_acceleration -= (
-        (2 * np.pi**2.0 / w**2.0)
-        * (field**2.0 + other_field**2.0 - eta**2)
-        * field
-    )
+    potential_derivative = lam * (field**2.0 + other_field**2.0 - eta**2) * field
 
-    return evolved_acceleration
+    return potential_derivative
 
 
 def run_cosmic_string_simulation(
@@ -120,6 +95,9 @@ def run_cosmic_string_simulation(
     else:
         np.random.seed()
 
+    # Preprocess constants
+    lam = 2 * np.pi**2 / w**2
+
     # Initialise real field
     phi_real = 0.1 * np.random.normal(size=(N, N))
     phidot_real = np.zeros(shape=(N, N))
@@ -129,11 +107,23 @@ def run_cosmic_string_simulation(
     phidot_imaginary = np.zeros(shape=(N, N))
 
     # Initialise acceleration
-    phidotdot_real = evolve_acceleration_cs(
-        phi_real, phidot_real, phi_imaginary, alpha, eta, era, w, N, dx, t
+    phidotdot_real = evolve_acceleration(
+        phi_real,
+        phidot_real,
+        potential_derivative_cs(phi_real, phi_imaginary, eta, lam),
+        alpha,
+        era,
+        dx,
+        t,
     )
-    phidotdot_imaginary = evolve_acceleration_cs(
-        phi_imaginary, phidot_imaginary, phi_real, alpha, eta, era, w, N, dx, t
+    phidotdot_imaginary = evolve_acceleration(
+        phi_imaginary,
+        phidot_imaginary,
+        potential_derivative_cs(phi_imaginary, phi_real, eta, lam),
+        alpha,
+        era,
+        dx,
+        t,
     )
 
     # Set run time of simulation to light crossing time if no specific time is given
@@ -160,11 +150,23 @@ def run_cosmic_string_simulation(
         # Next timestep
         t = t + dt
 
-        next_phidotdot_real = evolve_acceleration_cs(
-            phi_real, phidot_real, phi_imaginary, alpha, eta, era, w, N, dx, t
+        next_phidotdot_real = evolve_acceleration(
+            phi_real,
+            phidot_real,
+            potential_derivative_cs(phi_real, phi_imaginary, eta, lam),
+            alpha,
+            era,
+            dx,
+            t,
         )
-        next_phidotdot_imaginary = evolve_acceleration_cs(
-            phi_imaginary, phidot_imaginary, phi_real, alpha, eta, era, w, N, dx, t
+        next_phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary,
+            phidot_imaginary,
+            potential_derivative_cs(phi_imaginary, phi_real, eta, lam),
+            alpha,
+            era,
+            dx,
+            t,
         )
         # Evolve phidot
         phidot_real = evolve_velocity(

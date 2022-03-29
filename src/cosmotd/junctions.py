@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
-from .fields import evolve_field, evolve_velocity
+from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
 from .utils import (
     laplacian2D,
@@ -18,54 +18,35 @@ TODO: Find out what to plot.
 """
 
 
-def evolve_acceleration_phi1(
+def potential_derivative_phi1_junctions(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
     phi4: np.ndarray,
-    velocity: np.ndarray,
-    alpha: float,
     epsilon: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Calculates the derivative of the pentavac potential with respect to phi1.
 
     Parameters
     ----------
-    field : np.ndarray
-        the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
-    eta : float
-        the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    phi1 : np.ndarray
+        the real component of the field phi.
+    phi2 : np.ndarray
+        the imaginary component of the field phi.
+    phi3 : np.ndarray
+        the real component of the field psi.
+    phi4 : np.ndarray
+        the imaginary component of the field psi.
+    epsilon : float
+        the symmetry breaking parameter.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
+    potential_derivative : np.ndarray
         the evolved acceleration.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(phi1, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    potential = (
+    potential_derivative = (
         epsilon * phi1 * (phi1 * (phi3**2 - phi4**2) + 2 * phi2 * phi3 * phi4)
         + np.sqrt(phi1**2 + phi2**2)
         * (
@@ -74,58 +55,38 @@ def evolve_acceleration_phi1(
             + 1.0 * phi1 * (phi1**2 + phi2**2 - 1)
         )
     ) / np.sqrt(phi1**2 + phi2**2)
-    evolved_acceleration -= potential
-    return evolved_acceleration
+    return potential_derivative
 
 
-def evolve_acceleration_phi2(
+def potential_derivative_phi2_junctions(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
     phi4: np.ndarray,
-    velocity: np.ndarray,
-    alpha: float,
     epsilon: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Calculates the derivative of the pentavac potential with respect to phi2.
 
     Parameters
     ----------
-    field : np.ndarray
-        the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
-    eta : float
-        the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    phi1 : np.ndarray
+        the real component of the field phi.
+    phi2 : np.ndarray
+        the imaginary component of the field phi.
+    phi3 : np.ndarray
+        the real component of the field psi.
+    phi4 : np.ndarray
+        the imaginary component of the field psi.
+    epsilon : float
+        the symmetry breaking parameter.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
+    potential_derivative : np.ndarray
         the evolved acceleration.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(phi2, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    potential = (
+    potential_derivative = (
         epsilon * phi2 * (phi1 * (phi3**2 - phi4**2) + 2 * phi2 * phi3 * phi4)
         + np.sqrt(phi1**2 + phi2**2)
         * (
@@ -134,58 +95,38 @@ def evolve_acceleration_phi2(
             + 1.0 * phi2 * (phi1**2 + phi2**2 - 1)
         )
     ) / np.sqrt(phi1**2 + phi2**2)
-    evolved_acceleration -= potential
-    return evolved_acceleration
+    return potential_derivative
 
 
-def evolve_acceleration_phi3(
+def potential_derivative_phi3_junctions(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
     phi4: np.ndarray,
-    velocity: np.ndarray,
-    alpha: float,
     epsilon: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Calculates the derivative of the pentavac potential with respect to phi3.
 
     Parameters
     ----------
-    field : np.ndarray
-        the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
-    eta : float
-        the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    phi1 : np.ndarray
+        the real component of the field phi.
+    phi2 : np.ndarray
+        the imaginary component of the field phi.
+    phi3 : np.ndarray
+        the real component of the field psi.
+    phi4 : np.ndarray
+        the imaginary component of the field psi.
+    epsilon : float
+        the symmetry breaking parameter.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
+    potential_derivative : np.ndarray
         the evolved acceleration.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(phi3, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    potential = (
+    potential_derivative = (
         -epsilon * phi3 * (2 * phi1 * phi2 * phi4 - phi3 * (phi1**2 - phi2**2))
         + np.sqrt(phi3**2 + phi4**2)
         * (
@@ -194,58 +135,38 @@ def evolve_acceleration_phi3(
             + 1.0 * phi3 * (phi3**2 + phi4**2 - 1)
         )
     ) / np.sqrt(phi3**2 + phi4**2)
-    evolved_acceleration -= potential
-    return evolved_acceleration
+    return potential_derivative
 
 
-def evolve_acceleration_phi4(
+def potential_derivative_phi4_junctions(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
     phi4: np.ndarray,
-    velocity: np.ndarray,
-    alpha: float,
     epsilon: float,
-    era: float,
-    N: int,
-    dx: float,
-    t: float,
 ) -> np.ndarray:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Calculates the derivative of the pentavac potential with respect to phi4.
 
     Parameters
     ----------
-    field : np.ndarray
-        the field.
-    velocity : np.ndarray
-        the velocity of the field.
-    alpha : float
-        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
-    eta : float
-        the location of the symmetry broken minima.
-    era : float
-        the cosmological era where 1 corresponds to the radiation era and 2 corresponds to the matter era.
-    w : float
-        the width of the domain walls. Relates to the parameter `lambda` by the equation lambda = 2*pi^2/w^2.
-    N : int
-        the size of the field.
-    dx : float
-        the spacing between field grid points.
-    t : float
-        the current time.
+    phi1 : np.ndarray
+        the real component of the field phi.
+    phi2 : np.ndarray
+        the imaginary component of the field phi.
+    phi3 : np.ndarray
+        the real component of the field psi.
+    phi4 : np.ndarray
+        the imaginary component of the field psi.
+    epsilon : float
+        the symmetry breaking parameter.
 
     Returns
     -------
-    evolved_acceleration : np.ndarray
+    potential_derivative : np.ndarray
         the evolved acceleration.
     """
-    # Laplacian term
-    evolved_acceleration = laplacian2D(phi4, dx, N)
-    # 'Damping' term
-    evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
-    potential = (
+    potential_derivative = (
         -epsilon * phi4 * (2 * phi1 * phi2 * phi4 - phi3 * (phi1**2 - phi2**2))
         + np.sqrt(phi3**2 + phi4**2)
         * (
@@ -254,8 +175,7 @@ def evolve_acceleration_phi4(
             + 1.0 * phi4 * (phi3**2 + phi4**2 - 1)
         )
     ) / np.sqrt(phi3**2 + phi4**2)
-    evolved_acceleration -= potential
-    return evolved_acceleration
+    return potential_derivative
 
 
 def run_junction_simulation(
@@ -314,17 +234,41 @@ def run_junction_simulation(
     phi4dot = np.zeros(shape=(N, N))
 
     # Acceleration terms
-    phi1dotdot = evolve_acceleration_phi1(
-        phi1, phi2, phi3, phi4, phi1dot, alpha, epsilon, era, N, dx, t
+    phi1dotdot = evolve_acceleration(
+        phi1,
+        phi1dot,
+        potential_derivative_phi1_junctions(phi1, phi2, phi3, phi4, epsilon),
+        alpha,
+        era,
+        dx,
+        t,
     )
-    phi2dotdot = evolve_acceleration_phi2(
-        phi1, phi2, phi3, phi4, phi2dot, alpha, epsilon, era, N, dx, t
+    phi2dotdot = evolve_acceleration(
+        phi2,
+        phi2dot,
+        potential_derivative_phi2_junctions(phi1, phi2, phi3, phi4, epsilon),
+        alpha,
+        era,
+        dx,
+        t,
     )
-    phi3dotdot = evolve_acceleration_phi3(
-        phi1, phi2, phi3, phi4, phi3dot, alpha, epsilon, era, N, dx, t
+    phi3dotdot = evolve_acceleration(
+        phi3,
+        phi3dot,
+        potential_derivative_phi3_junctions(phi1, phi2, phi3, phi4, epsilon),
+        alpha,
+        era,
+        dx,
+        t,
     )
-    phi4dotdot = evolve_acceleration_phi4(
-        phi1, phi2, phi3, phi4, phi4dot, alpha, epsilon, era, N, dx, t
+    phi4dotdot = evolve_acceleration(
+        phi4,
+        phi4dot,
+        potential_derivative_phi4_junctions(phi1, phi2, phi3, phi4, epsilon),
+        alpha,
+        era,
+        dx,
+        t,
     )
 
     # Set run time of simulation to light crossing time if no specific time is given
@@ -351,17 +295,41 @@ def run_junction_simulation(
         # Next timestep
         t = t + dt
 
-        next_phi1dotdot = evolve_acceleration_phi1(
-            phi1, phi2, phi3, phi4, phi1dot, alpha, epsilon, era, N, dx, t
+        next_phi1dotdot = evolve_acceleration(
+            phi1,
+            phi1dot,
+            potential_derivative_phi1_junctions(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            t,
         )
-        next_phi2dotdot = evolve_acceleration_phi2(
-            phi1, phi2, phi3, phi4, phi2dot, alpha, epsilon, era, N, dx, t
+        next_phi2dotdot = evolve_acceleration(
+            phi2,
+            phi2dot,
+            potential_derivative_phi2_junctions(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            t,
         )
-        next_phi3dotdot = evolve_acceleration_phi3(
-            phi1, phi2, phi3, phi4, phi3dot, alpha, epsilon, era, N, dx, t
+        next_phi3dotdot = evolve_acceleration(
+            phi3,
+            phi3dot,
+            potential_derivative_phi3_junctions(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            t,
         )
-        next_phi4dotdot = evolve_acceleration_phi4(
-            phi1, phi2, phi3, phi4, phi4dot, alpha, epsilon, era, N, dx, t
+        next_phi4dotdot = evolve_acceleration(
+            phi4,
+            phi4dot,
+            potential_derivative_phi4_junctions(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            t,
         )
         # Evolve phidot
         phi1dot = evolve_velocity(phi1dot, phi1dotdot, next_phi1dotdot, dt)

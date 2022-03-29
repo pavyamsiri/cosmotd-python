@@ -20,7 +20,7 @@ Laplacian
 """
 
 
-def laplacian2D(phi: np.ndarray, dx: float, N: int, fast: bool = False) -> np.ndarray:
+def laplacian2D(phi: np.ndarray, dx: float, fast: bool = False) -> np.ndarray:
     """
     Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
     to a fourth-order approximation. The computation can either be done iteratively or through array operations.
@@ -44,15 +44,15 @@ def laplacian2D(phi: np.ndarray, dx: float, N: int, fast: bool = False) -> np.nd
     """
 
     if fast:
-        return laplacian2D_matrix(phi, dx, N)
+        return laplacian2D_matrix(phi, dx)
     else:
-        return laplacian2D_iterative(phi, dx, N)
+        return laplacian2D_iterative(phi, dx)
 
 
 @njit
-def laplacian2D_iterative(phi: np.ndarray, dx: float, N: int) -> np.ndarray:
+def laplacian2D_iterative(phi: np.ndarray, dx: float) -> np.ndarray:
     """
-    Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
+    Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx`. This is done
     to a fourth-order approximation. The computation is done iteratively per cell.
 
     Parameters
@@ -61,8 +61,6 @@ def laplacian2D_iterative(phi: np.ndarray, dx: float, N: int) -> np.ndarray:
         a square discrete 2D scalar field to compute the Laplacian of.
     dx : float
         the spacing between points of the field `phi`.
-    N : int
-        the size of the field `phi`.
 
     Returns
     -------
@@ -70,17 +68,20 @@ def laplacian2D_iterative(phi: np.ndarray, dx: float, N: int) -> np.ndarray:
         the Laplacian of the field `phi` to a fourth-order approximation.
     """
 
-    # Initialise the Laplacian array.
-    ddphi = np.zeros(shape=(N, N))
+    M = phi.shape[0]
+    N = phi.shape[1]
 
-    for i in range(0, N):
+    # Initialise the Laplacian array.
+    ddphi = np.zeros(shape=(M, N))
+
+    for i in range(0, M):
         for j in range(0, N):
             ddphi[i, j] = (
                 1
                 / (12.0 * dx**2.0)
                 * (
-                    -phi[np.mod(i + 2, N), j]
-                    + 16.0 * phi[np.mod(i + 1, N), j]
+                    -phi[np.mod(i + 2, M), j]
+                    + 16.0 * phi[np.mod(i + 1, M), j]
                     + 16.0 * phi[i - 1, j]
                     - phi[i - 2, j]
                     - phi[i, np.mod(j + 2, N)]
@@ -94,8 +95,7 @@ def laplacian2D_iterative(phi: np.ndarray, dx: float, N: int) -> np.ndarray:
     return ddphi
 
 
-@njit
-def laplacian2D_matrix(phi: np.ndarray, dx: float, _N: int) -> np.ndarray:
+def laplacian2D_matrix(phi: np.ndarray, dx: float) -> np.ndarray:
     """
     Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
     to a fourth-order approximation. The computation is done via array operations.
@@ -106,8 +106,6 @@ def laplacian2D_matrix(phi: np.ndarray, dx: float, _N: int) -> np.ndarray:
         a square discrete 2D scalar field to compute the Laplacian of.
     dx : float
         the spacing between points of the field `phi`.
-    N : int
-        the size of the field `phi`.
 
     Returns
     -------
