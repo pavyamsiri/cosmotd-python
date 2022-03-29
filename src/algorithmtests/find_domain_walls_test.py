@@ -1,6 +1,3 @@
-# Import unittest so that we can import from src
-import unittest
-
 # Standard modules
 from enum import Enum
 from typing import Tuple
@@ -9,7 +6,7 @@ from typing import Tuple
 import numpy as np
 
 # Internal modules
-from topdefects.src.domain_wall_algorithms import (
+from cosmotd.domain_wall_algorithms import (
     find_domain_walls_convolve_cardinal,
     find_domain_walls_convolve_diagonal,
 )
