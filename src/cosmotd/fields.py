@@ -128,10 +128,10 @@ def calculate_energy(
     energy : np.ndarray
         the energy of the field.
     """
-    # Kinetic energy
+    # # Kinetic energy
     energy = 0.5 * velocity**2
-    # Gradient energy
-    energy -= 0.5 * laplacian2D(field, dx)
+    # # Gradient energy
+    energy += 0.5 * laplacian2D(field, dx)
     # Potential energy
     energy += potential
     return energy

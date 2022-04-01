@@ -2,15 +2,13 @@
 from typing import Optional, Type
 
 # External modules
+from numba import njit
 import numpy as np
 from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
-from .utils import (
-    laplacian2D,
-)
 
 """
 TODO: Allow rectangular arrays to be able to tune alpha = 2 * arctan(Ny/Nx)
@@ -278,11 +276,11 @@ def run_junction_simulation(
     # Set up plotting backend
     plotter = plot_backend(
         PlotterSettings(
-            title="Domain wall simulation", nrows=2, ncols=2, figsize=(640, 480)
+            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2*640, 480)
         )
     )
-    eta = 1
-    draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
+    draw_settings = ImageSettings(vmin=0, vmax=4, cmap="viridis")
+    angle_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
 
     # Run loop
     for i in tqdm(range(run_time)):
@@ -343,20 +341,62 @@ def run_junction_simulation(
         phi3dotdot = next_phi3dotdot
         phi4dotdot = next_phi4dotdot
 
+        phi_phase = np.arctan2(phi2, phi1)
+        psi_phase = np.arctan2(phi4, phi3)
+        # Color in field
+        colored_field = color_vacua(phi_phase, psi_phase, epsilon)
+
         # Plot
         plotter.reset()
-        # Real field
-        plotter.draw_image(phi1, 1, draw_settings)
-        plotter.set_title(r"$\phi_1$", 1)
+        # Vacua
+        plotter.draw_image(colored_field, 1, draw_settings)
+        plotter.set_title(r"Vacua", 1)
         plotter.set_axes_labels(r"$x$", r"$y$", 1)
-        plotter.draw_image(phi2, 2, draw_settings)
-        plotter.set_title(r"$\phi_2$", 2)
+        # Angles
+        plotter.draw_image(phi_phase, 2, angle_settings)
+        plotter.set_title(r"Phase of $\phi$", 2)
         plotter.set_axes_labels(r"$x$", r"$y$", 2)
-        plotter.draw_image(phi3, 3, draw_settings)
-        plotter.set_title(r"$\phi_3$", 3)
+        plotter.draw_image(psi_phase, 3, angle_settings)
+        plotter.set_title(r"Phase of $\psi$", 3)
         plotter.set_axes_labels(r"$x$", r"$y$", 3)
-        plotter.draw_image(phi4, 4, draw_settings)
-        plotter.set_title(r"$\phi_4$", 4)
-        plotter.set_axes_labels(r"$x$", r"$y$", 4)
         plotter.flush()
     plotter.close()
+
+
+@njit
+def find_closest_vacua(phi_phase, psi_phase, epsilon) -> int:
+    if epsilon < 0:
+        # For epsilon < 0
+        V0 = (0, 0)
+        V1 = (-2 * np.pi / 5, 4 * np.pi / 5)
+        V2 = (4 * np.pi / 5, 2 * np.pi / 5)
+        V3 = (2 * np.pi / 5, -4 * np.pi / 5)
+        V4 = (-4 * np.pi / 5, -2 * np.pi / 5)
+    else:
+        # For epsilon > 0
+        V0 = (np.pi, np.pi)
+        V1 = (-3 * np.pi / 5, np.pi / 5)
+        V2 = (np.pi / 5, 3 * np.pi / 5)
+        V3 = (3 * np.pi / 5, -np.pi / 5)
+        V4 = (-np.pi / 5, -3 * np.pi / 5)
+    minima = [V0, V1, V2, V3, V4]
+    best_fit = (-1, np.infty)
+
+    for idx, (phi_minimum, psi_minimum) in enumerate(minima):
+        error = (phi_phase - phi_minimum) ** 2 + (psi_phase - psi_minimum) ** 2
+        if error < best_fit[1]:
+            best_fit = (idx, error)
+
+    return best_fit[0]
+
+
+@njit
+def color_vacua(phi, psi, epsilon):
+    M = phi.shape[0]
+    N = phi.shape[1]
+    colored_field = np.empty((M, N))
+
+    for i in range(M):
+        for j in range(N):
+            colored_field[i][j] = find_closest_vacua(phi[i][j], psi[i][j], epsilon)
+    return colored_field
