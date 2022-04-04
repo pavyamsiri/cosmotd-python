@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .plot.base import Plotter, PlotterSettings, ImageSettings
 
 """
 TODO: Allow rectangular arrays to be able to tune alpha = 2 * arctan(Ny/Nx)
@@ -176,7 +176,7 @@ def potential_derivative_phi4_junctions(
     return potential_derivative
 
 
-def run_junction_simulation(
+def run_pentavac_simulation(
     N: int,
     dx: float,
     dt: float,
@@ -276,7 +276,7 @@ def run_junction_simulation(
     # Set up plotting backend
     plotter = plot_backend(
         PlotterSettings(
-            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2*640, 480)
+            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
         )
     )
     draw_settings = ImageSettings(vmin=0, vmax=4, cmap="viridis")

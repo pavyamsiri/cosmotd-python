@@ -1,4 +1,4 @@
-"""This file contains the necessary functions to run a cosmic string simulation."""
+"""This file contains the necessary functions to run a charged domain wall simulation."""
 
 # Standard modules
 from typing import Optional, Type
@@ -9,8 +9,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterSettings, ImageSettings
-from .utils import laplacian2D
+from .plot.base import Plotter, PlotterSettings, ImageSettings
 
 
 def potential_derivative_real_cdw(

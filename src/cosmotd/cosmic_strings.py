@@ -1,20 +1,16 @@
 """This file contains the necessary functions to run a cosmic string simulation."""
 
 # Standard modules
-from audioop import cross
 from typing import Optional, Type
 
 # External modules
 import numpy as np
 from tqdm import tqdm
 
-from cosmotd.domain_walls import potential_derivative_dw
-
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterSettings, ImageSettings
-from .utils import laplacian2D
+from .plot.base import Plotter, PlotterSettings, ImageSettings
 
 
 def potential_derivative_cs(

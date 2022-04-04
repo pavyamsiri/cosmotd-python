@@ -5,12 +5,13 @@ from typing import Optional, Type
 
 # External modules
 import numpy as np
+from pyparsing import line
 from tqdm import tqdm
 
 # Internal modules
 from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
 from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
-from .plot import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .plot.base import PlotSettings, Plotter, PlotterSettings, ImageSettings
 
 
 def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
@@ -130,7 +131,7 @@ def run_domain_wall_simulation(
     )
     draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
     highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="seismic")
-    line_settings = PlotSettings()
+    line_settings = PlotSettings(color="#1f77b4", linestyle="-")
 
     # Initialise wall count
     iterations = list(range(run_time))
