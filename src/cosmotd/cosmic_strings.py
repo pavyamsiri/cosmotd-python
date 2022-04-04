@@ -10,7 +10,7 @@ from tqdm import tqdm
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot.base import Plotter, PlotterSettings, ImageSettings
+from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
 
 def potential_derivative_cs(

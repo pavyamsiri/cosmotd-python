@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot.base import Plotter, PlotterSettings, ImageSettings
+from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
 
 def potential_derivative_real_cdw(

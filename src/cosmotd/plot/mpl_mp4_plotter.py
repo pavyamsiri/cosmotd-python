@@ -11,7 +11,8 @@ import numpy as np
 
 # Internal modules
 from .base import DPI, PLOT_CACHE, VIDEO_CACHE
-from .base import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .base import Plotter
+from .settings import PlotSettings, PlotterSettings, ImageSettings
 
 
 class MplMp4Plotter(Plotter):
@@ -116,7 +117,9 @@ class MplMp4Plotter(Plotter):
             the parameters to use when drawing.
         """
         self._axes[axis_index - 1].set_autoscale_on(False)
-        self._axes[axis_index - 1].plot(x, y, color=plot_args.color, linestyle=plot_args.linestyle)
+        self._axes[axis_index - 1].plot(
+            x, y, color=plot_args.color, linestyle=plot_args.linestyle
+        )
 
     def set_title(self, title: str, axis_index: int):
         """Sets the title of a plot.

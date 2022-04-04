@@ -11,7 +11,7 @@ from tqdm import tqdm
 # Internal modules
 from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
 from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
-from .plot.base import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
 
 def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:

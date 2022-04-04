@@ -10,7 +10,8 @@ import numpy as np
 
 # Internal modules
 from .base import DPI, PLOT_CACHE
-from .base import PlotSettings, Plotter, PlotterSettings, ImageSettings
+from .base import Plotter
+from .settings import PlotSettings, PlotterSettings, ImageSettings
 
 
 class MplPngPlotter(Plotter):

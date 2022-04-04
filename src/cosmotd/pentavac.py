@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot.base import Plotter, PlotterSettings, ImageSettings
+from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
 """
 TODO: Allow rectangular arrays to be able to tune alpha = 2 * arctan(Ny/Nx)
