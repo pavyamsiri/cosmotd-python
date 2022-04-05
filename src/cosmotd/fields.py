@@ -12,6 +12,17 @@ from .utils import laplacian2D_iterative
 
 @dataclass
 class Field:
+    """Container class that holds a scalar field's value, velocity and acceleration for conciseness.
+
+    Attributes
+    ----------
+    value : np.ndarray
+        the value of the field.
+    velocity : np.ndarray
+        the velocity of the field.
+    acceleration : np.ndarray
+        the acceleration of the field.
+    """
     value: np.ndarray
     velocity: np.ndarray
     acceleration: np.ndarray

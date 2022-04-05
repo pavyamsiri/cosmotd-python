@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
+from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
@@ -102,14 +103,13 @@ def plot_cosmic_string_simulation(
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
-    for _, (
-        phi_real,
-        phi_imaginary,
-        _,
-        _,
-        _,
-        _,
-    ) in tqdm(enumerate(simulation), total=simulation_end):
+    for _, (phi_real_field, phi_imaginary_field) in tqdm(
+        enumerate(simulation), total=simulation_end
+    ):
+        # Unpack
+        phi_real = phi_real_field.value
+        phi_imaginary = phi_imaginary_field.value
+
         # Identify strings
         strings = find_cosmic_strings_brute_force_small(phi_real, phi_imaginary)
 
@@ -137,7 +137,7 @@ def run_cosmic_string_simulation(
     lam: float,
     run_time: int,
     seed: Optional[int],
-) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray], None, None]:
+) -> Generator[Tuple[Field, Field], None, None]:
     """Runs a cosmic string simulation in two dimensions.
 
     Parameters
@@ -195,63 +195,71 @@ def run_cosmic_string_simulation(
         t,
     )
 
+    # Package fields
+    phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+    phi_imaginary_field = Field(phi_imaginary, phidot_imaginary, phidotdot_imaginary)
+
     # Yield the initial condition
-    yield (
-        phi_real,
-        phi_imaginary,
-        phidot_real,
-        phidot_imaginary,
-        phidotdot_real,
-        phidotdot_imaginary,
-    )
+    yield phi_real_field, phi_imaginary_field
 
     # Run loop
     for _ in range(run_time):
         # Evolve phi
-        phi_real = evolve_field(phi_real, phidot_real, phidotdot_real, dt)
-        phi_imaginary = evolve_field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
+        phi_real_field.value = evolve_field(
+            phi_real_field.value,
+            phi_real_field.velocity,
+            phi_real_field.acceleration,
+            dt,
+        )
+        phi_imaginary_field.value = evolve_field(
+            phi_imaginary_field.value,
+            phi_imaginary_field.velocity,
+            phi_imaginary_field.acceleration,
+            dt,
         )
 
         # Next timestep
-        t = t + dt
+        t += dt
 
         next_phidotdot_real = evolve_acceleration(
-            phi_real,
-            phidot_real,
-            potential_derivative_cs(phi_real, phi_imaginary, eta, lam),
+            phi_real_field.value,
+            phi_real_field.velocity,
+            potential_derivative_cs(
+                phi_real_field.value, phi_imaginary_field.value, eta, lam
+            ),
             alpha,
             era,
             dx,
             t,
         )
         next_phidotdot_imaginary = evolve_acceleration(
-            phi_imaginary,
-            phidot_imaginary,
-            potential_derivative_cs(phi_imaginary, phi_real, eta, lam),
+            phi_imaginary_field.value,
+            phi_imaginary_field.velocity,
+            potential_derivative_cs(
+                phi_imaginary_field.value, phi_real_field.value, eta, lam
+            ),
             alpha,
             era,
             dx,
             t,
         )
         # Evolve phidot
-        phidot_real = evolve_velocity(
-            phidot_real, phidotdot_real, next_phidotdot_real, dt
+        phi_real_field.velocity = evolve_velocity(
+            phi_real_field.velocity,
+            phi_real_field.acceleration,
+            next_phidotdot_real,
+            dt,
         )
-        phidot_imaginary = evolve_velocity(
-            phidot_imaginary, phidotdot_imaginary, next_phidotdot_imaginary, dt
+        phi_imaginary_field.velocity = evolve_velocity(
+            phi_imaginary_field.velocity,
+            phi_imaginary_field.acceleration,
+            next_phidotdot_imaginary,
+            dt,
         )
 
         # Evolve phidotdot
-        phidotdot_real = next_phidotdot_real
-        phidotdot_imaginary = next_phidotdot_imaginary
+        phi_real_field.acceleration = next_phidotdot_real
+        phi_imaginary_field.acceleration = next_phidotdot_imaginary
 
         # Yield fields
-        yield (
-            phi_real,
-            phi_imaginary,
-            phidot_real,
-            phidot_imaginary,
-            phidotdot_real,
-            phidotdot_imaginary,
-        )
+        yield phi_real_field, phi_imaginary_field

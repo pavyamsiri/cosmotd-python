@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 # Internal modules
 from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
+from .fields import Field
 from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
@@ -130,7 +131,10 @@ def plot_domain_wall_simulation(
     domain_wall_energy_ratio.fill(np.nan)
 
     # Run simulation
-    for idx, (phi, phidot, _) in tqdm(enumerate(simulation), total=simulation_end):
+    for idx, (phi_field) in tqdm(enumerate(simulation), total=simulation_end):
+        # Unpack
+        phi = phi_field.value
+        phidot = phi_field.velocity
         # Identify domain walls
         domain_walls = find_domain_walls_convolve_diagonal(phi)
         domain_walls_masked = np.ma.masked_values(domain_walls, 0)
@@ -172,7 +176,7 @@ def run_domain_wall_simulation(
     lam: float,
     run_time: int,
     seed: Optional[int],
-) -> Generator[Tuple[np.ndarray, np.ndarray, np.ndarray], None, None]:
+) -> Generator[Field, None, None]:
     """Runs a domain wall simulation in two dimensions.
 
     Parameters
@@ -208,26 +212,27 @@ def run_domain_wall_simulation(
     phidotdot = evolve_acceleration(
         phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, t
     )
+    phi_field = Field(phi, phidot, phidotdot)
 
     # Yield the initial condition
-    yield phi, phidot, phidotdot
+    yield phi_field
 
     # Run loop
     for _ in range(run_time):
         # Evolve phi
-        phi = evolve_field(phi, phidot, phidotdot, dt)
+        phi_field.value = evolve_field(phi_field.value, phi_field.velocity, phi_field.acceleration, dt)
 
         # Next timestep
         t += dt
 
         next_phidotdot = evolve_acceleration(
-            phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, t
+            phi_field.value, phi_field.velocity, potential_derivative_dw(phi_field.value, eta, lam), alpha, era, dx, t
         )
         # Evolve phidot
-        phidot = evolve_velocity(phidot, phidotdot, next_phidotdot, dt)
+        phi_field.velocity = evolve_velocity(phi_field.velocity, phi_field.acceleration, next_phidotdot, dt)
 
         # Evolve phidotdot
-        phidotdot = next_phidotdot
+        phi_field.acceleration = next_phidotdot
 
         # Yield fields
-        yield phi, phidot, phidotdot
+        yield phi_field

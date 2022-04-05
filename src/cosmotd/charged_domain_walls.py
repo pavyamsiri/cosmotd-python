@@ -8,6 +8,7 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
+from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 
@@ -173,9 +174,12 @@ def plot_charged_domain_wall_simulation(
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
-    for _, (phi, sigma_real, _, _, _, _, _, _, _) in tqdm(
+    for _, (phi_field, sigma_real_field, sigma_imaginary_field) in tqdm(
         enumerate(simulation), total=simulation_end
     ):
+        # Unpack
+        phi = phi_field.value
+        sigma_real = sigma_real_field.value
         # Plot
         plot_api.reset()
         # Real field
@@ -204,21 +208,7 @@ def run_charged_domain_wall_simulation(
     era: float,
     run_time: int,
     seed: Optional[int],
-) -> Generator[
-    Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ],
-    None,
-    None,
-]:
+) -> Generator[Tuple[Field, Field, Field], None, None]:
     """Runs a charged domain wall simulation in 2D.
 
     Parameters
@@ -311,38 +301,47 @@ def run_charged_domain_wall_simulation(
         t,
     )
 
-    # Yield the initial condition
-    yield (
-        phi,
-        sigma_real,
-        sigma_imaginary,
-        phidot,
-        sigmadot_real,
-        sigmadot_imaginary,
-        phidotdot,
-        sigmadotdot_real,
-        sigmadotdot_imaginary,
+    # Package fields
+    phi_field = Field(phi, phidot, phidotdot)
+    sigma_real_field = Field(sigma_real, sigmadot_real, sigmadotdot_real)
+    sigma_imaginary_field = Field(
+        sigma_imaginary, sigmadot_imaginary, sigmadotdot_imaginary
     )
+
+    # Yield the initial condition
+    yield phi_field, sigma_real_field, sigma_imaginary_field
 
     # Run loop
     for _ in range(run_time):
         # Evolve fields
-        phi = evolve_field(phi, phidot, phidotdot, dt)
-        sigma_real = evolve_field(sigma_real, sigmadot_real, sigmadotdot_real, dt)
-        sigma_imaginary = evolve_field(
-            sigma_imaginary, sigmadot_imaginary, sigmadotdot_imaginary, dt
+        phi_field.value = evolve_field(
+            phi_field.value, phi_field.velocity, phi_field.acceleration, dt
+        )
+        sigma_real_field.value = evolve_field(
+            sigma_real_field.value,
+            sigma_real_field.velocity,
+            sigma_real_field.acceleration,
+            dt,
+        )
+        sigma_imaginary_field.value = evolve_field(
+            sigma_imaginary_field.value,
+            sigma_imaginary_field.velocity,
+            sigma_imaginary_field.acceleration,
+            dt,
         )
 
         # Next timestep
-        t = t + dt
+        t += dt
 
-        complex_square_amplitude = sigma_real**2 + sigma_imaginary**2
+        complex_square_amplitude = (
+            sigma_real_field.value**2 + sigma_imaginary_field.value**2
+        )
 
         next_phidotdot = evolve_acceleration(
-            phi,
-            phidot,
+            phi_field.value,
+            phi_field.velocity,
             potential_derivative_real_cdw(
-                phi, complex_square_amplitude, beta, eta_phi, lam_phi
+                phi_field.value, complex_square_amplitude, beta, eta_phi, lam_phi
             ),
             alpha,
             era,
@@ -350,10 +349,15 @@ def run_charged_domain_wall_simulation(
             t,
         )
         next_sigmadotdot_real = evolve_acceleration(
-            sigma_real,
-            sigmadot_real,
+            sigma_real_field.value,
+            sigma_real_field.velocity,
             potential_derivative_complex_cdw(
-                sigma_real, sigma_imaginary, phi, beta, eta_sigma, lam_sigma
+                sigma_real_field.value,
+                sigma_imaginary_field.value,
+                phi_field.value,
+                beta,
+                eta_sigma,
+                lam_sigma,
             ),
             alpha,
             era,
@@ -361,10 +365,15 @@ def run_charged_domain_wall_simulation(
             t,
         )
         next_sigmadotdot_imaginary = evolve_acceleration(
-            sigma_imaginary,
-            sigmadot_imaginary,
+            sigma_imaginary_field.value,
+            sigma_imaginary_field.velocity,
             potential_derivative_complex_cdw(
-                sigma_imaginary, sigma_real, phi, beta, eta_sigma, lam_sigma
+                sigma_imaginary_field.value,
+                sigma_real_field.value,
+                phi_field.value,
+                beta,
+                eta_sigma,
+                lam_sigma,
             ),
             alpha,
             era,
@@ -372,28 +381,26 @@ def run_charged_domain_wall_simulation(
             t,
         )
         # Evolve phidot
-        phidot = evolve_velocity(phidot, phidotdot, next_phidotdot, dt)
-        sigmadot_real = evolve_velocity(
-            sigmadot_real, sigmadotdot_real, next_sigmadotdot_real, dt
+        phi_field.velocity = evolve_velocity(
+            phi_field.velocity, phi_field.acceleration, next_phidotdot, dt
         )
-        sigmadot_imaginary = evolve_velocity(
-            sigmadot_imaginary, sigmadotdot_imaginary, next_sigmadotdot_imaginary, dt
+        sigma_real_field.velocity = evolve_velocity(
+            sigma_real_field.velocity,
+            sigma_real_field.acceleration,
+            next_sigmadotdot_real,
+            dt,
+        )
+        sigma_imaginary_field.velocity = evolve_velocity(
+            sigma_imaginary_field.velocity,
+            sigma_imaginary_field.acceleration,
+            next_sigmadotdot_imaginary,
+            dt,
         )
 
         # Evolve phidotdot
-        phidotdot = next_phidotdot
-        sigmadotdot_real = next_sigmadotdot_real
-        sigmadotdot_imaginary = next_sigmadotdot_imaginary
+        phi_field.acceleration = next_phidotdot
+        sigma_real_field.acceleration = next_sigmadotdot_real
+        sigma_imaginary_field.acceleration = next_sigmadotdot_imaginary
 
         # Yield fields
-        yield (
-            phi,
-            sigma_real,
-            sigma_imaginary,
-            phidot,
-            sigmadot_real,
-            sigmadot_imaginary,
-            phidotdot,
-            sigmadotdot_real,
-            sigmadotdot_imaginary,
-        )
+        yield phi_field, sigma_real_field, sigma_imaginary_field

@@ -38,10 +38,10 @@ def find_closest_vacua(phi_phase: float, psi_phase: float, epsilon: float) -> in
         (3 * np.pi / 5, -np.pi / 5),  # V3
         (-np.pi / 5, -3 * np.pi / 5),  # V4
     ]
-
     # Combined list of vacua
     PENTAVAC_VACUA = [NEGATIVE_VACUA, POSITIVE_VACUA]
     minima_index = int((1 + np.sign(epsilon)) / 2)
+    print(minima_index)
     minima = PENTAVAC_VACUA[minima_index]
     best_fit = (-1, np.infty)
 

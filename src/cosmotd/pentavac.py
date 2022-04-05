@@ -6,12 +6,13 @@ import numpy as np
 from tqdm import tqdm
 
 # Internal modules
+from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 from .pentavac_algorithms import color_vacua
 
 
-def potential_derivative_phi1_junctions(
+def potential_derivative_phi1_pentavac(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
@@ -51,7 +52,7 @@ def potential_derivative_phi1_junctions(
     return potential_derivative
 
 
-def potential_derivative_phi2_junctions(
+def potential_derivative_phi2_pentavac(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
@@ -91,7 +92,7 @@ def potential_derivative_phi2_junctions(
     return potential_derivative
 
 
-def potential_derivative_phi3_junctions(
+def potential_derivative_phi3_pentavac(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
@@ -131,7 +132,7 @@ def potential_derivative_phi3_junctions(
     return potential_derivative
 
 
-def potential_derivative_phi4_junctions(
+def potential_derivative_phi4_pentavac(
     phi1: np.ndarray,
     phi2: np.ndarray,
     phi3: np.ndarray,
@@ -230,9 +231,15 @@ def plot_pentavac_simulation(
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
-    for _, (phi1, phi2, phi3, phi4, _, _, _, _, _, _, _, _) in tqdm(
+    for _, (phi1_field, phi2_field, phi3_field, phi4_field) in tqdm(
         enumerate(simulation), total=simulation_end
     ):
+        # Unpack
+        phi1 = phi1_field.value
+        phi2 = phi2_field.value
+        phi3 = phi3_field.value
+        phi4 = phi4_field.value
+        # Calculate phase
         phi_phase = np.arctan2(phi2, phi1)
         psi_phase = np.arctan2(phi4, phi3)
         # Color in field
@@ -265,24 +272,7 @@ def run_pentavac_simulation(
     era: float,
     run_time: int,
     seed: Optional[int],
-) -> Generator[
-    Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-    ],
-    None,
-    None,
-]:
+) -> Generator[Tuple[Field, Field, Field, Field], None, None]:
     """Runs a domain wall simulation in two dimensions.
 
     Parameters
@@ -326,7 +316,7 @@ def run_pentavac_simulation(
     phi1dotdot = evolve_acceleration(
         phi1,
         phi1dot,
-        potential_derivative_phi1_junctions(phi1, phi2, phi3, phi4, epsilon),
+        potential_derivative_phi1_pentavac(phi1, phi2, phi3, phi4, epsilon),
         alpha,
         era,
         dx,
@@ -335,7 +325,7 @@ def run_pentavac_simulation(
     phi2dotdot = evolve_acceleration(
         phi2,
         phi2dot,
-        potential_derivative_phi2_junctions(phi1, phi2, phi3, phi4, epsilon),
+        potential_derivative_phi2_pentavac(phi1, phi2, phi3, phi4, epsilon),
         alpha,
         era,
         dx,
@@ -344,7 +334,7 @@ def run_pentavac_simulation(
     phi3dotdot = evolve_acceleration(
         phi3,
         phi3dot,
-        potential_derivative_phi3_junctions(phi1, phi2, phi3, phi4, epsilon),
+        potential_derivative_phi3_pentavac(phi1, phi2, phi3, phi4, epsilon),
         alpha,
         era,
         dx,
@@ -353,98 +343,120 @@ def run_pentavac_simulation(
     phi4dotdot = evolve_acceleration(
         phi4,
         phi4dot,
-        potential_derivative_phi4_junctions(phi1, phi2, phi3, phi4, epsilon),
+        potential_derivative_phi4_pentavac(phi1, phi2, phi3, phi4, epsilon),
         alpha,
         era,
         dx,
         t,
     )
 
-    yield (
-        phi1,
-        phi2,
-        phi3,
-        phi4,
-        phi1dot,
-        phi2dot,
-        phi3dot,
-        phi4dot,
-        phi1dotdot,
-        phi2dotdot,
-        phi3dotdot,
-        phi4dotdot,
-    )
+    # Package fields
+    phi1_field = Field(phi1, phi1dot, phi1dotdot)
+    phi2_field = Field(phi2, phi2dot, phi2dotdot)
+    phi3_field = Field(phi3, phi3dot, phi3dotdot)
+    phi4_field = Field(phi4, phi4dot, phi4dotdot)
+
+    yield phi1_field, phi2_field, phi3_field, phi4_field
 
     # Run loop
     for _ in range(run_time):
         # Evolve phi
-        phi1 = evolve_field(phi1, phi1dot, phi1dotdot, dt)
-        phi2 = evolve_field(phi2, phi2dot, phi2dotdot, dt)
-        phi3 = evolve_field(phi3, phi3dot, phi3dotdot, dt)
-        phi4 = evolve_field(phi4, phi4dot, phi4dotdot, dt)
+        phi1_field.value = evolve_field(
+            phi1_field.value, phi1_field.velocity, phi1_field.acceleration, dt
+        )
+        phi2_field.value = evolve_field(
+            phi2_field.value, phi2_field.velocity, phi2_field.acceleration, dt
+        )
+        phi3_field.value = evolve_field(
+            phi3_field.value, phi3_field.velocity, phi3_field.acceleration, dt
+        )
+        phi4_field.value = evolve_field(
+            phi4_field.value, phi4_field.velocity, phi4_field.acceleration, dt
+        )
 
         # Next timestep
-        t = t + dt
+        t += dt
 
         next_phi1dotdot = evolve_acceleration(
-            phi1,
-            phi1dot,
-            potential_derivative_phi1_junctions(phi1, phi2, phi3, phi4, epsilon),
+            phi1_field.value,
+            phi1_field.velocity,
+            potential_derivative_phi1_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
             alpha,
             era,
             dx,
             t,
         )
         next_phi2dotdot = evolve_acceleration(
-            phi2,
-            phi2dot,
-            potential_derivative_phi2_junctions(phi1, phi2, phi3, phi4, epsilon),
+            phi2_field.value,
+            phi2_field.velocity,
+            potential_derivative_phi2_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
             alpha,
             era,
             dx,
             t,
         )
         next_phi3dotdot = evolve_acceleration(
-            phi3,
-            phi3dot,
-            potential_derivative_phi3_junctions(phi1, phi2, phi3, phi4, epsilon),
+            phi3_field.value,
+            phi3_field.velocity,
+            potential_derivative_phi3_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
             alpha,
             era,
             dx,
             t,
         )
         next_phi4dotdot = evolve_acceleration(
-            phi4,
-            phi4dot,
-            potential_derivative_phi4_junctions(phi1, phi2, phi3, phi4, epsilon),
+            phi4_field.value,
+            phi4_field.velocity,
+            potential_derivative_phi4_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
             alpha,
             era,
             dx,
             t,
         )
+
         # Evolve phidot
-        phi1dot = evolve_velocity(phi1dot, phi1dotdot, next_phi1dotdot, dt)
-        phi2dot = evolve_velocity(phi2dot, phi2dotdot, next_phi2dotdot, dt)
-        phi3dot = evolve_velocity(phi3dot, phi3dotdot, next_phi3dotdot, dt)
-        phi4dot = evolve_velocity(phi4dot, phi4dotdot, next_phi4dotdot, dt)
+        phi1_field.velocity = evolve_velocity(
+            phi1_field.velocity, phi1_field.acceleration, next_phi1dotdot, dt
+        )
+        phi2_field.velocity = evolve_velocity(
+            phi2_field.velocity, phi2_field.acceleration, next_phi2dotdot, dt
+        )
+        phi3_field.velocity = evolve_velocity(
+            phi3_field.velocity, phi3_field.acceleration, next_phi3dotdot, dt
+        )
+        phi4_field.velocity = evolve_velocity(
+            phi4_field.velocity, phi4_field.acceleration, next_phi4dotdot, dt
+        )
 
         # Evolve phidotdot
-        phi1dotdot = next_phi1dotdot
-        phi2dotdot = next_phi2dotdot
-        phi3dotdot = next_phi3dotdot
-        phi4dotdot = next_phi4dotdot
+        phi1_field.acceleration = next_phi1dotdot
+        phi2_field.acceleration = next_phi2dotdot
+        phi3_field.acceleration = next_phi3dotdot
+        phi4_field.acceleration = next_phi4dotdot
 
-        yield (
-            phi1,
-            phi2,
-            phi3,
-            phi4,
-            phi1dot,
-            phi2dot,
-            phi3dot,
-            phi4dot,
-            phi1dotdot,
-            phi2dotdot,
-            phi3dotdot,
-            phi4dotdot,
-        )
+        # Yield fields
+        yield phi1_field, phi2_field, phi3_field, phi4_field
