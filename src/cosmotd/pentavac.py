@@ -10,10 +10,6 @@ from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
 from .pentavac_algorithms import color_vacua
 
-"""
-TODO: Allow rectangular arrays to be able to tune alpha = 2 * arctan(Ny/Nx)
-"""
-
 
 def potential_derivative_phi1_junctions(
     phi1: np.ndarray,
@@ -176,6 +172,7 @@ def potential_derivative_phi4_junctions(
 
 
 def plot_pentavac_simulation(
+    M: int,
     N: int,
     dx: float,
     dt: float,
@@ -186,12 +183,39 @@ def plot_pentavac_simulation(
     run_time: Optional[int],
     seed: Optional[int],
 ):
+    """Plots a domain wall simulation in two dimensions.
+
+    Parameters
+    ----------
+    M : int
+        the number of rows of the field to simulate.
+    N : int
+        the number of columns of the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    epsilon : float
+        a parameter in the pentavac model.
+    era : float
+        the cosmological era.
+    plot_backend: Type[Plotter]
+        the plotting backend to use.
+    run_time : Optional[int]
+        the number of timesteps simulated.
+    seed : Optional[int]
+        the seed used in generation of the initial state of the field.
+    """
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
         run_time = int(0.5 * N * dx / dt)
 
     # Initialise simulation
-    simulation = run_pentavac_simulation(N, dx, dt, alpha, epsilon, era, run_time, seed)
+    simulation = run_pentavac_simulation(
+        M, N, dx, dt, alpha, epsilon, era, run_time, seed
+    )
 
     # Set up plotting
     plot_api = plot_backend(
@@ -232,6 +256,7 @@ def plot_pentavac_simulation(
 
 
 def run_pentavac_simulation(
+    M: int,
     N: int,
     dx: float,
     dt: float,
@@ -258,13 +283,14 @@ def run_pentavac_simulation(
     None,
     None,
 ]:
-    """
-    Runs a domain wall simulation in two dimensions.
+    """Runs a domain wall simulation in two dimensions.
 
     Parameters
     ----------
+    M : int
+        the number of rows of the field to simulate.
     N : int
-        the size of the field to simulate.
+        the number of columns of the field to simulate.
     dx : float
         the spacing between grid points.
     dt : float
@@ -287,14 +313,14 @@ def run_pentavac_simulation(
     np.random.seed(seed)
 
     # Initialise fields
-    phi1 = 0.1 * np.random.normal(size=(N, N))
-    phi1dot = np.zeros(shape=(N, N))
-    phi2 = 0.1 * np.random.normal(size=(N, N))
-    phi2dot = np.zeros(shape=(N, N))
-    phi3 = 0.1 * np.random.normal(size=(N, N))
-    phi3dot = np.zeros(shape=(N, N))
-    phi4 = 0.1 * np.random.normal(size=(N, N))
-    phi4dot = np.zeros(shape=(N, N))
+    phi1 = 0.1 * np.random.normal(size=(M, N))
+    phi1dot = np.zeros(shape=(M, N))
+    phi2 = 0.1 * np.random.normal(size=(M, N))
+    phi2dot = np.zeros(shape=(M, N))
+    phi3 = 0.1 * np.random.normal(size=(M, N))
+    phi3dot = np.zeros(shape=(M, N))
+    phi4 = 0.1 * np.random.normal(size=(M, N))
+    phi4dot = np.zeros(shape=(M, N))
 
     # Acceleration terms
     phi1dotdot = evolve_acceleration(

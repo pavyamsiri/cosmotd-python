@@ -1,17 +1,9 @@
-"""Mathematical functions that are JIT compiled to improve performance."""
+"""Mathematical functions."""
 
 # External modules
 from numba import njit
 import numpy as np
 
-
-"""
-TODO: Having an if statement run every time a Laplacian is calculated can be slow. Maybe we can just give the caller the function
-to keep and so only one conditional statement would be required. This is not high priority though because the actual algorithm
-would take most of the time, although profiling may be necessary. [Low Priority]
-TODO: The size `N` as an argument seems unnecessary as we should have `N` from the shape of phi. It might be because getting `N`
-is slower than having it be precomputed but that seems unlikely. [Very Low Priority]
-"""
 
 """
 ---------
@@ -20,39 +12,11 @@ Laplacian
 """
 
 
-def laplacian2D(phi: np.ndarray, dx: float, fast: bool = False) -> np.ndarray:
-    """
-    Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
-    to a fourth-order approximation. The computation can either be done iteratively or through array operations.
-
-    Parameters
-    ----------
-    phi : np.ndarray
-        a square discrete 2D scalar field to compute the Laplacian of.
-    dx : float
-        the spacing between points of the field `phi`.
-    N : int
-        the size of the field `phi`.
-    fast : bool
-        if `True` the computation will be carried out using array operations which are faster but requires more memory otherwise
-        if `False` the computation will be done iteratively which is slower but less memory intensive.
-
-    Returns
-    -------
-    ddphi : np.ndarray
-        the Laplacian of the field `phi` to a fourth-order approximation.
-    """
-
-    if fast:
-        return laplacian2D_matrix(phi, dx)
-    else:
-        return laplacian2D_iterative(phi, dx)
-
-
+# NOTE: The iterative JIT-compiled version of the Laplacian 2D function is faster than the matrix version by 2x, likely due to
+# matrices having to be allocated in the np.roll function.
 @njit
 def laplacian2D_iterative(phi: np.ndarray, dx: float) -> np.ndarray:
-    """
-    Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx`. This is done
+    """Computes the Laplacian of a square discrete 2D scalar field `phi` given a spacing `dx`. This is done
     to a fourth-order approximation. The computation is done iteratively per cell.
 
     Parameters
@@ -74,8 +38,8 @@ def laplacian2D_iterative(phi: np.ndarray, dx: float) -> np.ndarray:
     # Initialise the Laplacian array.
     ddphi = np.zeros(shape=(M, N))
 
-    for i in range(0, M):
-        for j in range(0, N):
+    for i in range(M):
+        for j in range(N):
             ddphi[i, j] = (
                 1
                 / (12.0 * dx**2.0)

@@ -1,10 +1,20 @@
 """Functions that are used to evolve a field and its velocity."""
 
+# Internal modules
+from dataclasses import dataclass
+
 # External modules
 import numpy as np
 
 # Internal modules
-from .utils import laplacian2D
+from .utils import laplacian2D_iterative
+
+
+@dataclass
+class Field:
+    value: np.ndarray
+    velocity: np.ndarray
+    acceleration: np.ndarray
 
 
 def evolve_field(
@@ -97,7 +107,7 @@ def evolve_acceleration(
         the evolved acceleration.
     """
     # Laplacian term
-    evolved_acceleration = laplacian2D(field, dx)
+    evolved_acceleration = laplacian2D_iterative(field, dx)
     # 'Damping' term
     evolved_acceleration -= alpha * (era / t) * velocity
     # Potential term
@@ -131,7 +141,7 @@ def calculate_energy(
     # # Kinetic energy
     energy = 0.5 * velocity**2
     # # Gradient energy
-    energy += 0.5 * laplacian2D(field, dx)
+    energy += 0.5 * laplacian2D_iterative(field, dx)
     # Potential energy
     energy += potential
     return energy
