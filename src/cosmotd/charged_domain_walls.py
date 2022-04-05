@@ -1,7 +1,7 @@
 """This file contains the necessary functions to run a charged domain wall simulation."""
 
 # Standard modules
-from typing import Optional, Type
+from typing import Optional, Type, Generator, Tuple
 
 # External modules
 import numpy as np
@@ -86,7 +86,7 @@ def potential_derivative_complex_cdw(
     return potential_derivative
 
 
-def run_charged_domain_walls_simulation(
+def plot_charged_domain_wall_simulation(
     N: int,
     dx: float,
     dt: float,
@@ -99,11 +99,10 @@ def run_charged_domain_walls_simulation(
     charge_density: float,
     era: float,
     plot_backend: Type[Plotter],
-    seed: Optional[int],
     run_time: Optional[int],
+    seed: Optional[int],
 ):
-    """
-    Runs a charged domain wall simulation in 2D.
+    """Plots a charged domain wall simulation in 2D.
 
     Parameters
     ----------
@@ -129,22 +128,133 @@ def run_charged_domain_walls_simulation(
         the initial charge density that determines the initial condition of the complex scalar field.
     era : float
         the cosmological era.
-    plot_backend : Type[Plotter]
-        the plotting backend to use.
+    run_time : int
+        the number of timesteps simulated.
     seed : Optional[int]
         the seed used in generation of the initial state of the field.
-        If `None` the seed will be chosen by numpy's `seed` function.
-    run_time : Optional[int]
-        the number of timesteps simulated. If `None` the number of timesteps used will be the light crossing time.
+    """
+    # Set run time of simulation to light crossing time if no specific time is given
+    if run_time is None:
+        run_time = int(0.5 * N * dx / dt)
+
+    # Initialise simulation
+    simulation = run_charged_domain_wall_simulation(
+        N,
+        dx,
+        dt,
+        alpha,
+        beta,
+        eta_phi,
+        eta_sigma,
+        lam_phi,
+        lam_sigma,
+        charge_density,
+        era,
+        run_time,
+        seed,
+    )
+
+    # Set up plotting
+    plot_api = plot_backend(
+        PlotterSettings(
+            title="Charged domain wall simulation",
+            nrows=1,
+            ncols=2,
+            figsize=(1280, 720),
+        )
+    )
+    phi_draw_settings = ImageSettings(
+        vmin=-1.1 * eta_phi, vmax=1.1 * eta_phi, cmap="viridis"
+    )
+    sigma_draw_settings = ImageSettings(
+        vmin=-1.1 * eta_sigma, vmax=1.1 * eta_sigma, cmap="viridis"
+    )
+
+    # Number of iterations in the simulation (including initial condition)
+    simulation_end = run_time + 1
+
+    for _, (phi, sigma_real, _, _, _, _, _, _, _) in tqdm(
+        enumerate(simulation), total=simulation_end
+    ):
+        # Plot
+        plot_api.reset()
+        # Real field
+        plot_api.draw_image(phi, 1, phi_draw_settings)
+        plot_api.set_title(r"$\phi$", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        # Complex field
+        plot_api.draw_image(sigma_real, 2, sigma_draw_settings)
+        plot_api.set_title(r"$\Re{\sigma}$", 2)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.flush()
+    plot_api.close()
+
+
+def run_charged_domain_wall_simulation(
+    N: int,
+    dx: float,
+    dt: float,
+    alpha: float,
+    beta: float,
+    eta_phi: float,
+    eta_sigma: float,
+    lam_phi: float,
+    lam_sigma: float,
+    charge_density: float,
+    era: float,
+    run_time: int,
+    seed: Optional[int],
+) -> Generator[
+    Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ],
+    None,
+    None,
+]:
+    """Runs a charged domain wall simulation in 2D.
+
+    Parameters
+    ----------
+    N : int
+        the size of the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    beta : float
+        the strength of the coupling between the real and complex scalar fields.
+    eta_phi : float
+        the location of the symmetry broken minima of the real scalar field.
+    eta_sigma : float
+        the location of the symmetry broken minima of the complex scalar field.
+    lam_phi : float
+        the 'mass' of the real scalar field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    lam_sigma : float
+        the 'mass' of the complex scalar field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    charge_density : float
+        the initial charge density that determines the initial condition of the complex scalar field.
+    era : float
+        the cosmological era.
+    run_time : int
+        the number of timesteps simulated.
+    seed : Optional[int]
+        the seed used in generation of the initial state of the field.
     """
     # Clock
     t = 1.0 * dt
 
     # Seed the RNG
-    if seed is not None:
-        np.random.seed(seed)
-    else:
-        np.random.seed()
+    np.random.seed(seed)
 
     A = np.sqrt(charge_density)
 
@@ -201,28 +311,21 @@ def run_charged_domain_walls_simulation(
         t,
     )
 
-    # Set run time of simulation to light crossing time if no specific time is given
-    if run_time is None:
-        run_time = int(0.5 * N * dx / dt)
-
-    # Set up plotting backend
-    plotter = plot_backend(
-        PlotterSettings(
-            title="Charged domain wall simulation",
-            nrows=1,
-            ncols=2,
-            figsize=(1280, 720),
-        )
-    )
-    phi_draw_settings = ImageSettings(
-        vmin=-1.1 * eta_phi, vmax=1.1 * eta_phi, cmap="viridis"
-    )
-    sigma_draw_settings = ImageSettings(
-        vmin=-1.1 * eta_sigma, vmax=1.1 * eta_sigma, cmap="viridis"
+    # Yield the initial condition
+    yield (
+        phi,
+        sigma_real,
+        sigma_imaginary,
+        phidot,
+        sigmadot_real,
+        sigmadot_imaginary,
+        phidotdot,
+        sigmadotdot_real,
+        sigmadotdot_imaginary,
     )
 
     # Run loop
-    for i in tqdm(range(run_time)):
+    for _ in range(run_time):
         # Evolve fields
         phi = evolve_field(phi, phidot, phidotdot, dt)
         sigma_real = evolve_field(sigma_real, sigmadot_real, sigmadotdot_real, dt)
@@ -282,15 +385,15 @@ def run_charged_domain_walls_simulation(
         sigmadotdot_real = next_sigmadotdot_real
         sigmadotdot_imaginary = next_sigmadotdot_imaginary
 
-        # Plot
-        plotter.reset()
-        # Real field
-        plotter.draw_image(phi, 1, phi_draw_settings)
-        plotter.set_title(r"$\phi$", 1)
-        plotter.set_axes_labels(r"$x$", r"$y$", 1)
-        # Complex field
-        plotter.draw_image(sigma_real, 2, sigma_draw_settings)
-        plotter.set_title(r"$\Re{\sigma}$", 2)
-        plotter.set_axes_labels(r"$x$", r"$y$", 2)
-        plotter.flush()
-    plotter.close()
+        # Yield fields
+        yield (
+            phi,
+            sigma_real,
+            sigma_imaginary,
+            phidot,
+            sigmadot_real,
+            sigmadot_imaginary,
+            phidotdot,
+            sigmadotdot_real,
+            sigmadotdot_imaginary,
+        )

@@ -1,5 +1,8 @@
 """Algorithms to detect domain walls in a 2D lattice."""
 
+# Internal modules
+from typing import Tuple
+
 # External modules
 import numpy as np
 import scipy.signal

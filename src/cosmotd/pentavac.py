@@ -1,18 +1,17 @@
 # Standard modules
-from typing import Optional, Type
+from typing import Optional, Type, Generator, Tuple
 
 # External modules
-from numba import njit
 import numpy as np
 from tqdm import tqdm
 
 # Internal modules
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
+from .pentavac_algorithms import color_vacua
 
 """
 TODO: Allow rectangular arrays to be able to tune alpha = 2 * arctan(Ny/Nx)
-TODO: Find out what to plot.
 """
 
 
@@ -176,7 +175,7 @@ def potential_derivative_phi4_junctions(
     return potential_derivative
 
 
-def run_pentavac_simulation(
+def plot_pentavac_simulation(
     N: int,
     dx: float,
     dt: float,
@@ -184,9 +183,81 @@ def run_pentavac_simulation(
     epsilon: float,
     era: float,
     plot_backend: Type[Plotter],
-    seed: Optional[int],
     run_time: Optional[int],
+    seed: Optional[int],
 ):
+    # Set run time of simulation to light crossing time if no specific time is given
+    if run_time is None:
+        run_time = int(0.5 * N * dx / dt)
+
+    # Initialise simulation
+    simulation = run_pentavac_simulation(N, dx, dt, alpha, epsilon, era, run_time, seed)
+
+    # Set up plotting
+    plot_api = plot_backend(
+        PlotterSettings(
+            title="Pentavac simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
+        )
+    )
+    # Configure settings for drawing
+    draw_settings = ImageSettings(vmin=0, vmax=4, cmap="viridis")
+    angle_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+
+    # Number of iterations in the simulation (including initial condition)
+    simulation_end = run_time + 1
+
+    for _, (phi1, phi2, phi3, phi4, _, _, _, _, _, _, _, _) in tqdm(
+        enumerate(simulation), total=simulation_end
+    ):
+        phi_phase = np.arctan2(phi2, phi1)
+        psi_phase = np.arctan2(phi4, phi3)
+        # Color in field
+        colored_field = color_vacua(phi_phase, psi_phase, epsilon)
+
+        # Plot
+        plot_api.reset()
+        # Vacua
+        plot_api.draw_image(colored_field, 1, draw_settings)
+        plot_api.set_title(r"Vacua", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        # Phases
+        plot_api.draw_image(phi_phase, 2, angle_settings)
+        plot_api.set_title(r"Phase of $\phi$", 2)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.draw_image(psi_phase, 3, angle_settings)
+        plot_api.set_title(r"Phase of $\psi$", 3)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 3)
+        plot_api.flush()
+    plot_api.close()
+
+
+def run_pentavac_simulation(
+    N: int,
+    dx: float,
+    dt: float,
+    alpha: float,
+    epsilon: float,
+    era: float,
+    run_time: int,
+    seed: Optional[int],
+) -> Generator[
+    Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+    ],
+    None,
+    None,
+]:
     """
     Runs a domain wall simulation in two dimensions.
 
@@ -204,22 +275,16 @@ def run_pentavac_simulation(
         a parameter in the pentavac model.
     era : float
         the cosmological era.
-    plot_backend : Type[Plotter]
-        the plotting backend to use.
+    run_time : int
+        the number of timesteps simulated.
     seed : Optional[int]
         the seed used in generation of the initial state of the field.
-        If `None` the seed will be chosen by numpy's `seed` function.
-    run_time : Optional[int]
-        the number of timesteps simulated. If `None` the number of timesteps used will be the light crossing time.
     """
     # Clock
     t = 1.0 * dt
 
     # Seed the RNG
-    if seed is not None:
-        np.random.seed(seed)
-    else:
-        np.random.seed()
+    np.random.seed(seed)
 
     # Initialise fields
     phi1 = 0.1 * np.random.normal(size=(N, N))
@@ -269,21 +334,23 @@ def run_pentavac_simulation(
         t,
     )
 
-    # Set run time of simulation to light crossing time if no specific time is given
-    if run_time is None:
-        run_time = int(0.5 * N * dx / dt)
-
-    # Set up plotting backend
-    plotter = plot_backend(
-        PlotterSettings(
-            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
-        )
+    yield (
+        phi1,
+        phi2,
+        phi3,
+        phi4,
+        phi1dot,
+        phi2dot,
+        phi3dot,
+        phi4dot,
+        phi1dotdot,
+        phi2dotdot,
+        phi3dotdot,
+        phi4dotdot,
     )
-    draw_settings = ImageSettings(vmin=0, vmax=4, cmap="viridis")
-    angle_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
 
     # Run loop
-    for i in tqdm(range(run_time)):
+    for _ in range(run_time):
         # Evolve phi
         phi1 = evolve_field(phi1, phi1dot, phi1dotdot, dt)
         phi2 = evolve_field(phi2, phi2dot, phi2dotdot, dt)
@@ -341,62 +408,17 @@ def run_pentavac_simulation(
         phi3dotdot = next_phi3dotdot
         phi4dotdot = next_phi4dotdot
 
-        phi_phase = np.arctan2(phi2, phi1)
-        psi_phase = np.arctan2(phi4, phi3)
-        # Color in field
-        colored_field = color_vacua(phi_phase, psi_phase, epsilon)
-
-        # Plot
-        plotter.reset()
-        # Vacua
-        plotter.draw_image(colored_field, 1, draw_settings)
-        plotter.set_title(r"Vacua", 1)
-        plotter.set_axes_labels(r"$x$", r"$y$", 1)
-        # Angles
-        plotter.draw_image(phi_phase, 2, angle_settings)
-        plotter.set_title(r"Phase of $\phi$", 2)
-        plotter.set_axes_labels(r"$x$", r"$y$", 2)
-        plotter.draw_image(psi_phase, 3, angle_settings)
-        plotter.set_title(r"Phase of $\psi$", 3)
-        plotter.set_axes_labels(r"$x$", r"$y$", 3)
-        plotter.flush()
-    plotter.close()
-
-
-@njit
-def find_closest_vacua(phi_phase, psi_phase, epsilon) -> int:
-    if epsilon < 0:
-        # For epsilon < 0
-        V0 = (0, 0)
-        V1 = (-2 * np.pi / 5, 4 * np.pi / 5)
-        V2 = (4 * np.pi / 5, 2 * np.pi / 5)
-        V3 = (2 * np.pi / 5, -4 * np.pi / 5)
-        V4 = (-4 * np.pi / 5, -2 * np.pi / 5)
-    else:
-        # For epsilon > 0
-        V0 = (np.pi, np.pi)
-        V1 = (-3 * np.pi / 5, np.pi / 5)
-        V2 = (np.pi / 5, 3 * np.pi / 5)
-        V3 = (3 * np.pi / 5, -np.pi / 5)
-        V4 = (-np.pi / 5, -3 * np.pi / 5)
-    minima = [V0, V1, V2, V3, V4]
-    best_fit = (-1, np.infty)
-
-    for idx, (phi_minimum, psi_minimum) in enumerate(minima):
-        error = (phi_phase - phi_minimum) ** 2 + (psi_phase - psi_minimum) ** 2
-        if error < best_fit[1]:
-            best_fit = (idx, error)
-
-    return best_fit[0]
-
-
-@njit
-def color_vacua(phi, psi, epsilon):
-    M = phi.shape[0]
-    N = phi.shape[1]
-    colored_field = np.empty((M, N))
-
-    for i in range(M):
-        for j in range(N):
-            colored_field[i][j] = find_closest_vacua(phi[i][j], psi[i][j], epsilon)
-    return colored_field
+        yield (
+            phi1,
+            phi2,
+            phi3,
+            phi4,
+            phi1dot,
+            phi2dot,
+            phi3dot,
+            phi4dot,
+            phi1dotdot,
+            phi2dotdot,
+            phi3dotdot,
+            phi4dotdot,
+        )
