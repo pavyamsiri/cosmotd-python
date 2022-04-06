@@ -11,7 +11,7 @@ from tqdm import tqdm
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
+from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_cs(
@@ -92,13 +92,13 @@ def plot_cosmic_string_simulation(
 
     # Set up plotting
     plot_api = plot_backend(
-        PlotterSettings(
+        PlotterConfig(
             title="Cosmic string simulation", nrows=1, ncols=2, figsize=(640, 480)
         )
     )
     # Configure settings for drawing
-    draw_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="viridis")
+    draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="viridis")
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -116,13 +116,13 @@ def plot_cosmic_string_simulation(
         # Plot
         plot_api.reset()
         # Phase
-        plot_api.draw_image(np.arctan2(phi_imaginary, phi_real), 1, draw_settings)
-        plot_api.set_title(r"$\theta$", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.draw_image(np.arctan2(phi_imaginary, phi_real), 0, 0, draw_settings)
+        plot_api.set_title(r"$\theta$", 0)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Strings
-        plot_api.draw_image(strings, 2, highlight_settings)
-        plot_api.set_title(r"Strings", 2)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.draw_image(strings, 1, 0, highlight_settings)
+        plot_api.set_title(r"Strings", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.flush()
     plot_api.close()
 

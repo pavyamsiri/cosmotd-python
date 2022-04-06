@@ -10,7 +10,7 @@ from tqdm import tqdm
 # Internal modules
 from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
+from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_real_cdw(
@@ -157,17 +157,17 @@ def plot_charged_domain_wall_simulation(
 
     # Set up plotting
     plot_api = plot_backend(
-        PlotterSettings(
+        PlotterConfig(
             title="Charged domain wall simulation",
             nrows=1,
             ncols=2,
             figsize=(1280, 720),
         )
     )
-    phi_draw_settings = ImageSettings(
+    phi_draw_settings = ImageConfig(
         vmin=-1.1 * eta_phi, vmax=1.1 * eta_phi, cmap="viridis"
     )
-    sigma_draw_settings = ImageSettings(
+    sigma_draw_settings = ImageConfig(
         vmin=-1.1 * eta_sigma, vmax=1.1 * eta_sigma, cmap="viridis"
     )
 
@@ -183,13 +183,13 @@ def plot_charged_domain_wall_simulation(
         # Plot
         plot_api.reset()
         # Real field
-        plot_api.draw_image(phi, 1, phi_draw_settings)
-        plot_api.set_title(r"$\phi$", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.draw_image(phi, 0, 0, phi_draw_settings)
+        plot_api.set_title(r"$\phi$", 0)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Complex field
-        plot_api.draw_image(sigma_real, 2, sigma_draw_settings)
-        plot_api.set_title(r"$\Re{\sigma}$", 2)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.draw_image(sigma_real, 1, 0, sigma_draw_settings)
+        plot_api.set_title(r"$\Re{\sigma}$", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.flush()
     plot_api.close()
 

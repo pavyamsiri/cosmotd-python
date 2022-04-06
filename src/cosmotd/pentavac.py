@@ -8,7 +8,7 @@ from tqdm import tqdm
 # Internal modules
 from .fields import Field
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
+from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 from .pentavac_algorithms import color_vacua
 
 
@@ -220,13 +220,13 @@ def plot_pentavac_simulation(
 
     # Set up plotting
     plot_api = plot_backend(
-        PlotterSettings(
+        PlotterConfig(
             title="Pentavac simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
         )
     )
     # Configure settings for drawing
-    draw_settings = ImageSettings(vmin=0, vmax=4, cmap="viridis")
-    angle_settings = ImageSettings(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis")
+    angle_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -248,16 +248,16 @@ def plot_pentavac_simulation(
         # Plot
         plot_api.reset()
         # Vacua
-        plot_api.draw_image(colored_field, 1, draw_settings)
-        plot_api.set_title(r"Vacua", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.draw_image(colored_field, 0, 0, draw_settings)
+        plot_api.set_title(r"Vacua", 0)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Phases
-        plot_api.draw_image(phi_phase, 2, angle_settings)
-        plot_api.set_title(r"Phase of $\phi$", 2)
+        plot_api.draw_image(phi_phase, 1, 0, angle_settings)
+        plot_api.set_title(r"Phase of $\phi$", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.draw_image(psi_phase, 2, 0, angle_settings)
+        plot_api.set_title(r"Phase of $\psi$", 2)
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
-        plot_api.draw_image(psi_phase, 3, angle_settings)
-        plot_api.set_title(r"Phase of $\psi$", 3)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 3)
         plot_api.flush()
     plot_api.close()
 

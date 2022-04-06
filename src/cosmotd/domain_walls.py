@@ -15,7 +15,7 @@ from .domain_wall_algorithms import (
 )
 from .fields import Field
 from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
-from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
+from .plot import Plotter, PlotterConfig, LineConfig, ImageConfig
 
 
 def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
@@ -116,14 +116,14 @@ def plot_domain_wall_simulation(
 
     # Set up plotting
     plot_api = plot_backend(
-        PlotterSettings(
+        PlotterConfig(
             title="Domain wall simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
         )
     )
     # Configure settings for drawing
-    draw_settings = ImageSettings(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
-    highlight_settings = ImageSettings(vmin=-1, vmax=1, cmap="seismic")
-    line_settings = PlotSettings(color="#1f77b4", linestyle="-")
+    draw_settings = ImageConfig(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
+    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
+    line_settings = LineConfig(color="#1f77b4", linestyle="-")
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -188,44 +188,57 @@ def plot_domain_wall_simulation(
         # Plot
         plot_api.reset()
         # Real field
-        plot_api.draw_image(phi, 1, draw_settings)
-        plot_api.set_title(r"$\phi$", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.draw_image(phi, 0, 0, draw_settings)
+        plot_api.set_title(r"$\phi$", 0)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Highlight walls
-        plot_api.draw_image(domain_walls_masked, 2, highlight_settings)
-        plot_api.set_title(r"Domain walls", 2)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.draw_image(domain_walls_masked, 1, 0, highlight_settings)
+        plot_api.set_title(r"Domain walls", 1)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         # Plot energy
-        plot_api.draw_plot(run_time_x_axis, domain_wall_energy_ratio, 3, line_settings)
+        plot_api.draw_plot(
+            run_time_x_axis, domain_wall_energy_ratio, 2, 0, line_settings
+        )
         plot_api.draw_plot(
             run_time_x_axis,
             dw_kinetic_energy_ratio,
-            3,
-            PlotSettings(color="tab:orange", linestyle="--"),
+            2,
+            1,
+            LineConfig(color="tab:orange", linestyle="--"),
         )
         plot_api.draw_plot(
             run_time_x_axis,
             dw_gradient_energy_ratio,
-            3,
-            PlotSettings(color="tab:green", linestyle="--"),
+            2,
+            2,
+            LineConfig(color="tab:green", linestyle="--"),
         )
         plot_api.draw_plot(
             run_time_x_axis,
             dw_potential_energy_ratio,
+            2,
             3,
-            PlotSettings(color="tab:red", linestyle="--"),
+            LineConfig(color="tab:red", linestyle="--"),
         )
         plot_api.draw_plot(
             run_time_x_axis,
             dw_count,
-            3,
-            PlotSettings(color="tab:purple", linestyle="--"),
+            2,
+            4,
+            LineConfig(color="tab:purple", linestyle="--"),
         )
-        plot_api.set_title("Domain wall energy", 3)
-        plot_api.set_axes_labels(r"Iteration $i$", r"$\frac{H_{DW}}{H}$", 3)
-        plot_api.set_axes_limits(0, simulation_end, -0.2, 1.2, 3)
+        plot_api.set_title("Domain wall energy", 2)
+        plot_api.set_axes_labels(r"Iteration $i$", r"$\frac{H_{DW}}{H}$", 2)
+        plot_api.set_axes_limits(0, simulation_end, -0.2, 1.2, 2)
         plot_api.set_legend(
-            ["Total energy", "Kinetic energy", "Gradient energy", "Potential energy", "Domain wall count"], 3
+            [
+                "Total energy",
+                "Kinetic energy",
+                "Gradient energy",
+                "Potential energy",
+                "Domain wall count",
+            ],
+            2,
         )
         plot_api.flush()
     plot_api.close()

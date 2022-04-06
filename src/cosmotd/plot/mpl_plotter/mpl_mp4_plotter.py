@@ -1,0 +1,42 @@
+# Standard modules
+import os
+
+# External modules
+import ffmpeg
+from matplotlib import pyplot as plt
+
+# Internal modules
+from cosmotd.plot.plotter import PLOT_CACHE, VIDEO_CACHE
+from cosmotd.plot.mpl_plotter.mpl_png_plotter import MplPngPlotter
+from cosmotd.plot.settings import PlotterConfig
+
+
+# Go from this file to project root
+SUB_TO_ROOT = "/../../../"
+
+
+class MplMp4Plotter(MplPngPlotter):
+    """This plotter uses `matplotlib` as its plotting backend.
+    Plots are saved as a png upon flush in a folder called `plot_cache`, and then upon close the png sequence will be stitched
+    together into a mp4.
+    """
+
+    def __init__(self, settings: PlotterConfig):
+        super().__init__(settings)
+
+    def close(self):
+        plt.close(self._fig)
+        # Construct file names
+        src_folder = os.path.dirname(os.path.realpath(__file__))
+        input_file_template = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_%d.png"
+        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/simulation.mp4"
+        (
+            ffmpeg.input(
+                input_file_template,
+                framerate=20,
+                y=None,
+            )
+            .output(output_file, crf=25, pix_fmt="yuv420p")
+            .overwrite_output()
+            .run()
+        )

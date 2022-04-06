@@ -2,7 +2,7 @@
 from typing import NamedTuple, Tuple
 
 
-class PlotterSettings(NamedTuple):
+class PlotterConfig(NamedTuple):
     """The configurable settings of a plotter.
 
     Attributes
@@ -23,7 +23,7 @@ class PlotterSettings(NamedTuple):
     figsize: Tuple[int, int]
 
 
-class ImageSettings(NamedTuple):
+class ImageConfig(NamedTuple):
     """The plotting parameters used when plotting 2D arrays.
 
     Attributes
@@ -41,7 +41,7 @@ class ImageSettings(NamedTuple):
     cmap: str
 
 
-class PlotSettings(NamedTuple):
+class LineConfig(NamedTuple):
     """The plotting parameters used when plotting a line plot.
 
     Attributes
@@ -51,5 +51,6 @@ class PlotSettings(NamedTuple):
     linestyle : str
         the style of line.
     """
+
     color: str
     linestyle: str

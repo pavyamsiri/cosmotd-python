@@ -1,6 +1,7 @@
 # Standard modules
 from abc import ABC, abstractmethod
-from typing import NamedTuple, Optional, Tuple, TypeAlias
+from tkinter import Image
+from typing import Optional, TypeAlias
 
 # External modules
 import matplotlib.axes
@@ -9,17 +10,7 @@ import matplotlib.figure
 import numpy as np
 
 # Internal modules
-from .settings import PlotterSettings, PlotSettings, ImageSettings
-
-
-"""Type Aliases"""
-# Matplotlib figures
-MatplotlibFigure: TypeAlias = matplotlib.figure.Figure
-# Matplotlib axes
-MatplotlibAxes: TypeAlias = matplotlib.axes.Axes
-# Matplotlib objects that associate with axes
-# NOTE: Currently only supports colorbars but more can be added potentially
-MatplotlibSubAxes: TypeAlias = matplotlib.colorbar.Colorbar
+from .settings import PlotterConfig, LineConfig, ImageConfig
 
 
 """Constants"""
@@ -32,12 +23,12 @@ class Plotter(ABC):
     """An abstract class that serves as an interface for different plotting backends."""
 
     @abstractmethod
-    def __init__(self, settings: PlotterSettings):
+    def __init__(self, settings: PlotterConfig):
         """Constructs a plotter configured by the given settings.
 
         Parameters
         ----------
-        settings : PlotterSettings
+        settings : PlotterConfig
             settings used to configure plotting.
         """
         pass
@@ -48,7 +39,25 @@ class Plotter(ABC):
         pass
 
     @abstractmethod
-    def draw_image(self, data: np.ndarray, axis_index: int, plot_args: ImageSettings):
+    def flush(self):
+        """Draws all elements."""
+        pass
+
+    @abstractmethod
+    def close(self):
+        """Closes the plotter and any resources it may be using."""
+        pass
+
+    # Plotting functions
+
+    @abstractmethod
+    def draw_image(
+        self,
+        data: np.ndarray,
+        axis_index: int,
+        image_index: int,
+        image_config: ImageConfig,
+    ):
         """Draws an image from a 2D array.
 
         Parameters
@@ -57,14 +66,21 @@ class Plotter(ABC):
             the 2D array to draw.
         axis_index : int
             the index of the primary axis to draw the image to.
-        plot_args : ImageSettings
+        image_index : int
+            the index of the image to draw to.
+        image_config : ImageConfig
             the parameters to use when drawing.
         """
         pass
 
     @abstractmethod
     def draw_plot(
-        self, x: np.ndarray, y: np.ndarray, axis_index: int, plot_args: PlotSettings
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        axis_index: int,
+        line_index: int,
+        line_config: LineConfig,
     ):
         """Plot `y` against `x`.
 
@@ -75,11 +91,15 @@ class Plotter(ABC):
         y : np.ndarray
             the data along the y-axis.
         axis_index : int
-            the index of the primary axis to draw the image to.
-        plot_args : PlotSettings
+            the index of the primary axis to draw the line to.
+        line_index : int
+            the index of line to draw to.
+        line_config : LineConfig
             the parameters to use when drawing.
         """
         pass
+
+    # Axes-Specific Functions
 
     @abstractmethod
     def set_title(self, title: str, axis_index: int):
@@ -148,54 +168,56 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
-    def flush(self):
-        """Draws all elements."""
-        pass
-
-    @abstractmethod
-    def close(self):
-        """Closes the plotter and any resources it may be using."""
-        pass
-
 
 class MockPlotter(Plotter):
     """An abstract class that serves as an interface for different plotting backends."""
 
-    def __init__(self, _settings: PlotterSettings):
+    def __init__(self, settings: PlotterConfig):
         pass
 
     def reset(self):
         pass
 
-    def draw_image(
-        self, _data: np.ndarray, _axis_index: int, _plot_args: ImageSettings
-    ):
-        pass
-
-    def draw_plot(
-        self, _x: np.ndarray, _y: np.ndarray, _axis_index: int, _plot_args: PlotSettings
-    ):
-        pass
-
-    def set_title(self, _title: str, _axis_index: int):
-        pass
-
-    def set_axes_labels(self, _xlabel: str, _ylabel: str, _axis_index: int):
-        pass
-
-    def set_axes_limits(
-        self,
-        _x_min: Optional[float],
-        _x_max: Optional[float],
-        _y_min: Optional[float],
-        _y_max: Optional[float],
-        _axis_index: int,
-    ):
-        pass
-
     def flush(self):
         pass
 
     def close(self):
+        pass
+
+    def draw_image(
+        self,
+        data: np.ndarray,
+        axis_index: int,
+        image_index: int,
+        image_config: ImageConfig,
+    ):
+        pass
+
+    def draw_plot(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        axis_index: int,
+        line_index: int,
+        line_config: LineConfig,
+    ):
+        pass
+
+    def set_title(self, title: str, axis_index: int):
+        pass
+
+    def set_legend(self, legend: list[str], axis_index: int):
+        pass
+
+    def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
+        pass
+
+    def set_axes_limits(
+        self,
+        x_min: Optional[float],
+        x_max: Optional[float],
+        y_min: Optional[float],
+        y_max: Optional[float],
+        axis_index: int,
+    ):
         pass
