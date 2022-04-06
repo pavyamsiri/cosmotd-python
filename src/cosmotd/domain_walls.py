@@ -7,8 +7,12 @@ from typing import Generator, Optional, Type, Tuple
 import numpy as np
 from tqdm import tqdm
 
+from cosmotd.utils import laplacian2D_iterative
+
 # Internal modules
-from .domain_wall_algorithms import find_domain_walls_convolve_diagonal
+from .domain_wall_algorithms import (
+    find_domain_walls_with_width,
+)
 from .fields import Field
 from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acceleration
 from .plot import Plotter, PlotterSettings, PlotSettings, ImageSettings
@@ -129,6 +133,16 @@ def plot_domain_wall_simulation(
     # Domain wall energy ratio
     domain_wall_energy_ratio = np.empty(simulation_end)
     domain_wall_energy_ratio.fill(np.nan)
+    # Domain wall energy ratios (separate components of the total)
+    dw_kinetic_energy_ratio = np.empty(simulation_end)
+    dw_gradient_energy_ratio = np.empty(simulation_end)
+    dw_potential_energy_ratio = np.empty(simulation_end)
+    dw_kinetic_energy_ratio.fill(np.nan)
+    dw_gradient_energy_ratio.fill(np.nan)
+    dw_potential_energy_ratio.fill(np.nan)
+    # Domain wall count
+    dw_count = np.empty(simulation_end)
+    dw_count.fill(np.nan)
 
     # Run simulation
     for idx, (phi_field) in tqdm(enumerate(simulation), total=simulation_end):
@@ -136,7 +150,7 @@ def plot_domain_wall_simulation(
         phi = phi_field.value
         phidot = phi_field.velocity
         # Identify domain walls
-        domain_walls = find_domain_walls_convolve_diagonal(phi)
+        domain_walls = find_domain_walls_with_width(phi, w)
         domain_walls_masked = np.ma.masked_values(domain_walls, 0)
 
         # Calculate the energy ratio
@@ -146,6 +160,30 @@ def plot_domain_wall_simulation(
         )
         energy_ratio /= np.sum(energy)
         domain_wall_energy_ratio[idx] = energy_ratio
+        # Calculate the kinetic energy ratio
+        kinetic_energy = 0.5 * phidot**2
+        kinetic_energy_ratio = np.ma.sum(
+            np.ma.masked_where(np.ma.getmask(domain_walls_masked), kinetic_energy)
+        )
+        kinetic_energy_ratio /= np.sum(energy)
+        dw_kinetic_energy_ratio[idx] = kinetic_energy_ratio
+        # Calculate the gradient energy ratio
+        gradient_energy = 0.5 * laplacian2D_iterative(phi, dx)
+        gradient_energy_ratio = np.ma.sum(
+            np.ma.masked_where(np.ma.getmask(domain_walls_masked), gradient_energy)
+        )
+        gradient_energy_ratio /= np.sum(energy)
+        dw_gradient_energy_ratio[idx] = gradient_energy_ratio
+        # Calculate the potential energy ratio
+        potential_energy = potential_dw(phi, eta, lam)
+        potential_energy_ratio = np.ma.sum(
+            np.ma.masked_where(np.ma.getmask(domain_walls_masked), potential_energy)
+        )
+        potential_energy_ratio /= np.sum(energy)
+        dw_potential_energy_ratio[idx] = potential_energy_ratio
+
+        # Count domain walls
+        dw_count[idx] = np.count_nonzero(domain_walls) / N**2
 
         # Plot
         plot_api.reset()
@@ -159,9 +197,36 @@ def plot_domain_wall_simulation(
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
         # Plot energy
         plot_api.draw_plot(run_time_x_axis, domain_wall_energy_ratio, 3, line_settings)
+        plot_api.draw_plot(
+            run_time_x_axis,
+            dw_kinetic_energy_ratio,
+            3,
+            PlotSettings(color="tab:orange", linestyle="--"),
+        )
+        plot_api.draw_plot(
+            run_time_x_axis,
+            dw_gradient_energy_ratio,
+            3,
+            PlotSettings(color="tab:green", linestyle="--"),
+        )
+        plot_api.draw_plot(
+            run_time_x_axis,
+            dw_potential_energy_ratio,
+            3,
+            PlotSettings(color="tab:red", linestyle="--"),
+        )
+        plot_api.draw_plot(
+            run_time_x_axis,
+            dw_count,
+            3,
+            PlotSettings(color="tab:purple", linestyle="--"),
+        )
         plot_api.set_title("Domain wall energy", 3)
         plot_api.set_axes_labels(r"Iteration $i$", r"$\frac{H_{DW}}{H}$", 3)
-        plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        plot_api.set_axes_limits(0, simulation_end, -0.2, 1.2, 3)
+        plot_api.set_legend(
+            ["Total energy", "Kinetic energy", "Gradient energy", "Potential energy", "Domain wall count"], 3
+        )
         plot_api.flush()
     plot_api.close()
 
@@ -220,16 +285,26 @@ def run_domain_wall_simulation(
     # Run loop
     for _ in range(run_time):
         # Evolve phi
-        phi_field.value = evolve_field(phi_field.value, phi_field.velocity, phi_field.acceleration, dt)
+        phi_field.value = evolve_field(
+            phi_field.value, phi_field.velocity, phi_field.acceleration, dt
+        )
 
         # Next timestep
         t += dt
 
         next_phidotdot = evolve_acceleration(
-            phi_field.value, phi_field.velocity, potential_derivative_dw(phi_field.value, eta, lam), alpha, era, dx, t
+            phi_field.value,
+            phi_field.velocity,
+            potential_derivative_dw(phi_field.value, eta, lam),
+            alpha,
+            era,
+            dx,
+            t,
         )
         # Evolve phidot
-        phi_field.velocity = evolve_velocity(phi_field.velocity, phi_field.acceleration, next_phidotdot, dt)
+        phi_field.velocity = evolve_velocity(
+            phi_field.velocity, phi_field.acceleration, next_phidotdot, dt
+        )
 
         # Evolve phidotdot
         phi_field.acceleration = next_phidotdot

@@ -109,7 +109,6 @@ class MplNotebookPlotter(Plotter):
         plot_args : PlotSettings
             the parameters to use when drawing.
         """
-        self._axes[axis_index - 1].set_autoscale_on(False)
         self._axes[axis_index - 1].plot(
             x, y, color=plot_args.color, linestyle=plot_args.linestyle
         )
@@ -126,6 +125,19 @@ class MplNotebookPlotter(Plotter):
         """
         # Set title
         self._axes[axis_index - 1].set_title(title)
+
+    def set_legend(self, legend: list[str], axis_index: int):
+        """Sets the legend of a plot.
+
+        Parameters
+        ----------
+        legend : list[str]
+            the legend.
+        axis_index : int
+            the index of the primary axis to set the legend of.
+        """
+        # Set legend
+        self._axes[axis_index - 1].legend(legend)
 
     def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
         """Sets the labels of the x and y axes.

@@ -14,6 +14,8 @@ from .base import Plotter
 from .settings import PlotSettings, PlotterSettings, ImageSettings
 
 
+# TODO: Add multiprocessing if possible to the savefig routine in order to increase iteration speed.
+
 class MplPngPlotter(Plotter):
     """This plotter uses `matplotlib` as its plotting backend.
     Plots are saved as a png upon flush in a folder called `plot_cache`.
@@ -139,6 +141,19 @@ class MplPngPlotter(Plotter):
         """
         # Set title
         self._axes[axis_index - 1].set_title(title)
+
+    def set_legend(self, legend: list[str], axis_index: int):
+        """Sets the legend of a plot.
+
+        Parameters
+        ----------
+        legend : list[str]
+            the legend.
+        axis_index : int
+            the index of the primary axis to set the legend of.
+        """
+        # Set legend
+        self._axes[axis_index - 1].legend(legend)
 
     def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
         """Sets the labels of the x and y axes.

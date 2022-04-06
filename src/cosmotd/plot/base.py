@@ -95,6 +95,19 @@ class Plotter(ABC):
         pass
 
     @abstractmethod
+    def set_legend(self, legend: list[str], axis_index: int):
+        """Sets the legend of a plot.
+
+        Parameters
+        ----------
+        legend : list[str]
+            the legend.
+        axis_index : int
+            the index of the primary axis to set the legend of.
+        """
+        pass
+
+    @abstractmethod
     def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
         """Sets the labels of the x and y axes.
 
