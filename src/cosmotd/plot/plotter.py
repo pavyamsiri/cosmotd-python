@@ -1,12 +1,8 @@
 # Standard modules
 from abc import ABC, abstractmethod
-from tkinter import Image
-from typing import Optional, TypeAlias
+from typing import Optional
 
 # External modules
-import matplotlib.axes
-import matplotlib.colorbar
-import matplotlib.figure
 import numpy as np
 
 # Internal modules
@@ -151,7 +147,7 @@ class Plotter(ABC):
         y_max: Optional[float],
         axis_index: int,
     ):
-        """Sets the labels of the x and y axes.
+        """Sets the limits of the x and y axes.
 
         Parameters
         ----------
@@ -164,7 +160,7 @@ class Plotter(ABC):
         y_max : Optional[float]
             the maximum y value.
         axis_index : int
-            the index of the primary axis to set the axes labels of.
+            the index of the primary axis to set the axes limits of.
         """
         pass
 

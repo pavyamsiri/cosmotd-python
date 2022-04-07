@@ -7,18 +7,14 @@ from matplotlib import pyplot as plt
 
 # Internal modules
 from cosmotd.plot.plotter import PLOT_CACHE, VIDEO_CACHE
-from cosmotd.plot.mpl_plotter.mpl_png_plotter import MplPngPlotter
+from cosmotd.plot.mpl_plotter.mpl_png_plotter import MplPngPlotter, SUB_TO_ROOT
 from cosmotd.plot.settings import PlotterConfig
-
-
-# Go from this file to project root
-SUB_TO_ROOT = "/../../../"
 
 
 class MplMp4Plotter(MplPngPlotter):
     """This plotter uses `matplotlib` as its plotting backend.
     Plots are saved as a png upon flush in a folder called `plot_cache`, and then upon close the png sequence will be stitched
-    together into a mp4.
+    together into a mp4 in a folder called `video_cache`.
     """
 
     def __init__(self, settings: PlotterConfig):
