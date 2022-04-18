@@ -117,7 +117,10 @@ def plot_domain_wall_simulation(
     # Set up plotting
     plot_api = plot_backend(
         PlotterConfig(
-            title="Domain wall simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
+            title="Domain wall simulation",
+            nrows=2,
+            ncols=2,
+            figsize=(1.5 * 640, 1.5 * 480),
         )
     )
     # Configure settings for drawing
@@ -143,6 +146,13 @@ def plot_domain_wall_simulation(
     # Domain wall count
     dw_count = np.empty(simulation_end)
     dw_count.fill(np.nan)
+    # Absolute energies
+    total_energy = np.empty(simulation_end)
+    total_energy.fill(np.nan)
+    dw_energy = np.empty(simulation_end)
+    dw_energy.fill(np.nan)
+    ndw_energy = np.empty(simulation_end)
+    ndw_energy.fill(np.nan)
 
     # Run simulation
     for idx, (phi_field) in tqdm(enumerate(simulation), total=simulation_end):
@@ -184,6 +194,13 @@ def plot_domain_wall_simulation(
 
         # Count domain walls
         dw_count[idx] = np.count_nonzero(domain_walls) / N**2
+
+        # Non domain wall energy
+        total_energy[idx] = np.sum(energy)
+        dw_energy[idx] = np.ma.sum(
+            np.ma.masked_where(np.ma.getmask(domain_walls_masked), energy)
+        )
+        ndw_energy[idx] = total_energy[idx] - dw_energy[idx]
 
         # Plot
         plot_api.reset()
@@ -240,6 +257,25 @@ def plot_domain_wall_simulation(
             ],
             2,
         )
+        plot_api.draw_plot(
+            run_time_x_axis,
+            total_energy,
+            3,
+            0,
+            LineConfig(color="black", linestyle="-"),
+        )
+        plot_api.draw_plot(
+            run_time_x_axis, dw_energy, 3, 1, LineConfig(color="red", linestyle="--")
+        )
+        plot_api.draw_plot(
+            run_time_x_axis, ndw_energy, 3, 2, LineConfig(color="blue", linestyle="--")
+        )
+        plot_api.set_title("Absolute Energy", 3)
+        plot_api.set_axes_labels(r"Iteration $i$", r"Energy (a.u.)", 3)
+        plot_api.set_legend(
+            ["Total energy", "Domain wall energy", "Non-domain wall energy"], 3
+        )
+        plot_api.set_axes_limits(0, simulation_end, 0, None, 3)
         plot_api.flush()
     plot_api.close()
 

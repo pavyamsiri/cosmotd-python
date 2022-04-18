@@ -18,6 +18,7 @@ from cosmotd.plot.mpl_plotter.mpl_png_plotter import SUB_TO_ROOT
 
 # TODO: Instead of creating a job every frame and so processes only get to draw a single frame before completion, we instead
 # queue multiple frames per job and so many frames can work off a single figure and utilise set_data.
+# NOTE: Using this plotter can speed up iteration speed for 0.5 s/iteration to 0.1s/iteration.
 
 
 class DrawImageCommand(NamedTuple):
