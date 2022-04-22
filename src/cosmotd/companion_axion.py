@@ -494,7 +494,7 @@ def run_companion_axion_simulation(
     turn_on_time: int,
     run_time: int,
     seed: Optional[int],
-) -> Generator[Tuple[Field, Field], None, None]:
+) -> Generator[Tuple[Field, Field, Field, Field], None, None]:
     """Runs a cosmic string simulation in two dimensions.
 
     Parameters

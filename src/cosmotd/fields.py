@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 
 # Internal modules
-from .utils import laplacian2D_iterative
+from .utils import laplacian2D_convolve, laplacian2D_iterative
 
 
 @dataclass
@@ -23,6 +23,7 @@ class Field:
     acceleration : np.ndarray
         the acceleration of the field.
     """
+
     value: np.ndarray
     velocity: np.ndarray
     acceleration: np.ndarray
