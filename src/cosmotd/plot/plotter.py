@@ -6,7 +6,7 @@ from typing import Optional
 import numpy as np
 
 # Internal modules
-from .settings import PlotterConfig, LineConfig, ImageConfig
+from .settings import PlotterConfig, LineConfig, ImageConfig, ScatterConfig
 
 
 """Constants"""
@@ -87,11 +87,37 @@ class Plotter(ABC):
         y : np.ndarray
             the data along the y-axis.
         axis_index : int
-            the index of the primary axis to draw the line to.
+            the index of the primary axis to draw the scatter plot to.
         line_index : int
-            the index of line to draw to.
+            the index of the line to draw to.
         line_config : LineConfig
             the parameters to use when drawing.
+        """
+        pass
+
+    @abstractmethod
+    def draw_scatter(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        axis_index: int,
+        scatter_index: int,
+        scatter_config: ScatterConfig,
+    ):
+        """Plot `y` against `x` as a scatter point.
+
+        Parameters
+        ----------
+        x : np.ndarray
+            the data along the x-axis.
+        y : np.ndarray
+            the data along the y-axis.
+        axis_index : int
+            the index of the primary axis to draw the line to.
+        scatter_index : int
+            the index of the scatter plot to draw to.
+        scatter_config : LineConfig
+            the parameters to use when drawing the scatter plot.
         """
         pass
 
@@ -196,6 +222,16 @@ class MockPlotter(Plotter):
         axis_index: int,
         line_index: int,
         line_config: LineConfig,
+    ):
+        pass
+
+    def draw_scatter(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        axis_index: int,
+        scatter_index: int,
+        scatter_config: ScatterConfig,
     ):
         pass
 

@@ -5,6 +5,8 @@ from typing import Optional, Type, Generator, Tuple
 import numpy as np
 from tqdm import tqdm
 
+from cosmotd.plot.settings import ScatterConfig
+
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import Field
@@ -498,7 +500,12 @@ def plot_companion_axion_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="viridis")
+    positive_string_settings = ScatterConfig(
+        marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
+    )
+    negative_string_settings = ScatterConfig(
+        marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
+    )
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -514,27 +521,62 @@ def plot_companion_axion_simulation(
         phi_imaginary = phi_imaginary_field.value
         psi_real = psi_real_field.value
         psi_imaginary = psi_imaginary_field.value
+        # Phase
+        phi_phase = np.arctan2(phi_imaginary, phi_real)
+        psi_phase = np.arctan2(psi_imaginary, psi_real)
 
         # Identify strings
         phi_strings = find_cosmic_strings_brute_force_small(phi_real, phi_imaginary)
+        positive_phi_strings = np.nonzero(phi_strings > 0)
+        negative_phi_strings = np.nonzero(phi_strings < 0)
         psi_strings = find_cosmic_strings_brute_force_small(psi_real, psi_imaginary)
+        positive_psi_strings = np.nonzero(psi_strings > 0)
+        negative_psi_strings = np.nonzero(psi_strings < 0)
 
         # Plot
         plot_api.reset()
         # phi phase
-        plot_api.draw_image(np.arctan2(phi_imaginary, phi_real), 0, 0, draw_settings)
+        plot_api.draw_image(phi_phase, 0, 0, draw_settings)
         plot_api.set_title(r"$\arg{\phi}$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # phi strings
-        plot_api.draw_image(phi_strings, 1, 0, highlight_settings)
+        plot_api.draw_image(phi_phase, 1, 0, draw_settings)
+        plot_api.draw_scatter(
+            positive_phi_strings[0],
+            positive_phi_strings[1],
+            1,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            negative_phi_strings[0],
+            negative_phi_strings[1],
+            1,
+            1,
+            negative_string_settings,
+        )
         plot_api.set_title(r"$\phi$ Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         # psi phase
-        plot_api.draw_image(np.arctan2(psi_imaginary, psi_real), 2, 0, draw_settings)
+        plot_api.draw_image(psi_phase, 2, 0, draw_settings)
         plot_api.set_title(r"$\arg{\psi}$", 2)
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
         # psi strings
-        plot_api.draw_image(psi_strings, 3, 0, highlight_settings)
+        plot_api.draw_image(psi_phase, 3, 0, draw_settings)
+        plot_api.draw_scatter(
+            positive_psi_strings[0],
+            positive_psi_strings[1],
+            3,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            negative_psi_strings[0],
+            negative_psi_strings[1],
+            3,
+            1,
+            negative_string_settings,
+        )
         plot_api.set_title(r"$\psi$ Strings", 3)
         plot_api.set_axes_labels(r"$x$", r"$y$", 3)
         plot_api.flush()

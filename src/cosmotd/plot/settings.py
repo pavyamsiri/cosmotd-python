@@ -54,3 +54,25 @@ class LineConfig(NamedTuple):
 
     color: str
     linestyle: str
+
+
+class ScatterConfig(NamedTuple):
+    """The plotting parameters used when plotting a scatter plot.
+
+    Attributes
+    ----------
+    facecolors : list[str] | str
+        the face color of the scatter point markers. Either a sequence of colors or a string can be passed.
+    edgecolors : list[str] | str
+        the edge color of the scatter point markers. Either a sequence of colors or a string can be passed. If given `"face"`
+        the edge color will be the same as the face color, and if `"none"` is given, no edges are drawn.
+    marker : str
+        the marker used for all scatter points.
+    linewidths : list[float] | float
+        the width(s) of the scatter points.
+    """
+
+    facecolors: list[str] | str
+    edgecolors: list[str] | str
+    marker: str
+    linewidths: list[float] | float

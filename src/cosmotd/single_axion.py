@@ -7,6 +7,8 @@ from typing import Optional, Type, Generator, Tuple
 import numpy as np
 from tqdm import tqdm
 
+from cosmotd.plot.settings import ScatterConfig
+
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
 from .fields import Field
@@ -204,7 +206,12 @@ def plot_single_axion_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="viridis")
+    positive_string_settings = ScatterConfig(
+        marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
+    )
+    negative_string_settings = ScatterConfig(
+        marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
+    )
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -215,18 +222,29 @@ def plot_single_axion_simulation(
         # Unpack
         phi_real = phi_real_field.value
         phi_imaginary = phi_imaginary_field.value
+        # Phase
+        phase = np.arctan2(phi_imaginary, phi_real)
 
         # Identify strings
         strings = find_cosmic_strings_brute_force_small(phi_real, phi_imaginary)
+        # Get positions of strings to plot in scatter
+        positive_strings = np.nonzero(strings > 0)
+        negative_strings = np.nonzero(strings < 0)
 
         # Plot
         plot_api.reset()
         # Phase
-        plot_api.draw_image(np.arctan2(phi_imaginary, phi_real), 0, 0, draw_settings)
+        plot_api.draw_image(phase, 0, 0, draw_settings)
         plot_api.set_title(r"$\theta$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # Strings
-        plot_api.draw_image(strings, 1, 0, highlight_settings)
+        # Highlighting strings
+        plot_api.draw_image(phase, 1, 0, draw_settings)
+        plot_api.draw_scatter(
+            positive_strings[0], positive_strings[1], 1, 0, positive_string_settings
+        )
+        plot_api.draw_scatter(
+            negative_strings[0], negative_strings[1], 1, 1, negative_string_settings
+        )
         plot_api.set_title(r"Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.flush()

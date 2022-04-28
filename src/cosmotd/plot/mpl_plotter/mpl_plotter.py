@@ -7,7 +7,7 @@ import numpy as np
 
 # Internal modules
 from cosmotd.plot.plotter import DPI, Plotter
-from cosmotd.plot.settings import PlotterConfig, LineConfig, ImageConfig
+from cosmotd.plot.settings import PlotterConfig, LineConfig, ImageConfig, ScatterConfig
 
 
 class MplPlotter(Plotter):
@@ -30,6 +30,7 @@ class MplPlotter(Plotter):
         self._axes = []
         self._images = []
         self._lines = []
+        self._scatters = []
         for i in range(num_plots):
             current_axis = self._fig.add_subplot(settings.nrows, settings.ncols, i + 1)
             # Create a primary axis
@@ -38,6 +39,8 @@ class MplPlotter(Plotter):
             self._images.append({})
             # Create a list of lines per axis
             self._lines.append({})
+            # Create a list of scatter plots (PathCollections) per axis
+            self._scatters.append({})
 
     def reset(self):
         pass
@@ -97,6 +100,30 @@ class MplPlotter(Plotter):
         # Otherwise set the data of the line to the new data
         else:
             self._lines[axis_index][line_index].set_data(xdata, ydata)
+
+    def draw_scatter(
+        self,
+        xdata: np.ndarray,
+        ydata: np.ndarray,
+        axis_index: int,
+        scatter_index: int,
+        scatter_config: ScatterConfig,
+    ):
+        # Create a new line if it doesn't already exist
+        if scatter_index not in self._scatters[axis_index]:
+            self._scatters[axis_index][scatter_index] = self._axes[axis_index].scatter(
+                xdata,
+                ydata,
+                facecolors=scatter_config.facecolors,
+                edgecolors=scatter_config.edgecolors,
+                marker=scatter_config.marker,
+                linewidths=scatter_config.linewidths,
+            )
+        # Otherwise set the data of the scatter plot to the new data
+        else:
+            # Package x and y data into single 2D array
+            packaged_data = np.column_stack((xdata, ydata))
+            self._scatters[axis_index][scatter_index].set_offsets(packaged_data)
 
     def set_title(self, title: str, axis_index: int):
         # Set title

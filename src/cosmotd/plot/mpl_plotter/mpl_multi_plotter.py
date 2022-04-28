@@ -12,7 +12,7 @@ import numpy as np
 # Internal modules
 from cosmotd.plot.plotter import DPI, PLOT_CACHE, VIDEO_CACHE
 from cosmotd.plot.plotter import Plotter
-from cosmotd.plot.settings import ImageConfig, LineConfig, PlotterConfig
+from cosmotd.plot.settings import ImageConfig, LineConfig, PlotterConfig, ScatterConfig
 from cosmotd.plot.mpl_plotter.mpl_png_plotter import SUB_TO_ROOT
 
 
@@ -64,6 +64,30 @@ class DrawPlotCommand(NamedTuple):
     axis_index: int
     line_index: int
     config: LineConfig
+
+
+class DrawScatterCommand(NamedTuple):
+    """A structure that contains the necessary information to draw a scatter plot.
+
+    Attributes
+    ----------
+    xdata : np.ndarray
+        the data along the x-axis.
+    ydata : np.ndarray
+        the data along the y-axis.
+    axis_index : int
+        the index of the primary axis to draw the line to.
+    scatter_index : int
+        the index of the scatter plot to draw to.
+    config : ScatterConfig
+        the parameters to use when drawing.
+    """
+
+    xdata: np.ndarray
+    ydata: np.ndarray
+    axis_index: int
+    scatter_index: int
+    config: ScatterConfig
 
 
 class SetTitleCommand(NamedTuple):
@@ -169,6 +193,7 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
     axes = []
     images = []
     lines = []
+    scatters = []
     for i in range(num_plots):
         current_axis = fig.add_subplot(settings.nrows, settings.ncols, i + 1)
         # Create a primary axis
@@ -177,6 +202,8 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         images.append({})
         # Create a list of lines per axis
         lines.append({})
+        # Create a list of scatter plots per axis
+        scatters.append({})
 
     # Process commands
     for command in commands:
@@ -223,6 +250,28 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                 )[0]
             else:
                 lines[axis_index][line_index].set_data(xdata, ydata)
+        # Draw scatter plot
+        elif isinstance(command, DrawScatterCommand):
+            # Unpack data
+            xdata = command.xdata
+            ydata = command.ydata
+            axis_index = command.axis_index
+            scatter_index = command.scatter_index
+            scatter_config = command.config
+            # Create a new line if it doesn't already exist
+            if scatter_index not in scatters[axis_index]:
+                scatters[axis_index][scatter_index] = axes[axis_index].scatter(
+                    xdata,
+                    ydata,
+                    facecolors=scatter_config.facecolors,
+                    edgecolors=scatter_config.edgecolors,
+                    marker=scatter_config.marker,
+                    linewidths=scatter_config.linewidths,
+                )
+            else:
+                # Package x and y data into single 2D array
+                packaged_data = np.column_stack((xdata, ydata))
+                scatters[axis_index][scatter_index].set_offets(packaged_data)
         # Set title
         elif isinstance(command, SetTitleCommand):
             axes[command.axis_index].set_title(command.title)
@@ -340,6 +389,20 @@ class MplMultiPlotter(Plotter):
     ):
         self._commands.append(
             DrawPlotCommand(x.copy(), y.copy(), axis_index, line_index, line_config)
+        )
+
+    def draw_scatter(
+        self,
+        xdata: np.ndarray,
+        ydata: np.ndarray,
+        axis_index: int,
+        scatter_index: int,
+        scatter_config: ScatterConfig,
+    ):
+        self._commands.append(
+            DrawScatterCommand(
+                xdata.copy(), ydata.copy(), axis_index, scatter_index, scatter_config
+            )
         )
 
     def set_title(self, title: str, axis_index: int):
