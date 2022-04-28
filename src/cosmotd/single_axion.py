@@ -21,6 +21,9 @@ def potential_derivative_single_axion_real(
     lam: float,
     n: int,
     K: float,
+    t: float,
+    t0: float,
+    growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the single axion potential with respect to the real part of the field.
 
@@ -38,6 +41,12 @@ def potential_derivative_single_axion_real(
         the color anomaly coefficient. It is a free parameter that is integer-valued in the single axion model.
     K : float
         the strength of the axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the growth scale.
+    growth : float
+        the power law parameter.
 
     Returns
     -------
@@ -53,6 +62,7 @@ def potential_derivative_single_axion_real(
         2
         * n
         * K
+        * (t / t0) ** growth
         * np.sin(n * np.arctan2(imaginary_field, real_field))
         * imaginary_field
         / (real_field**2 + imaginary_field**2)
@@ -67,6 +77,9 @@ def potential_derivative_single_axion_imaginary(
     lam: float,
     n: int,
     K: float,
+    t: float,
+    t0: float,
+    growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the single axion potential with respect to the imaginary part of the field.
 
@@ -84,6 +97,12 @@ def potential_derivative_single_axion_imaginary(
         the color anomaly coefficient. It is a free parameter that is integer-valued in the single axion model.
     K : float
         the strength of the axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the growth scale.
+    growth : float
+        the power law parameter.
 
     Returns
     -------
@@ -99,6 +118,7 @@ def potential_derivative_single_axion_imaginary(
         2
         * n
         * K
+        * (t / t0) ** growth
         * np.sin(n * np.arctan2(imaginary_field, real_field))
         * real_field
         / (real_field**2 + imaginary_field**2)
@@ -116,7 +136,8 @@ def plot_single_axion_simulation(
     lam: float,
     n: int,
     K: float,
-    turn_on_time: int,
+    t0: float,
+    growth: float,
     plot_backend: Type[Plotter],
     run_time: Optional[int],
     seed: Optional[int],
@@ -143,8 +164,10 @@ def plot_single_axion_simulation(
         the color anomaly coefficient N.
     K : float
         the strength of the axion potential.
-    turn_on_time : int
-        the number of steps before turning on axion potential.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    growth : float
+        the power law exponent of the strength growth.
     plot_backend : Type[Plotter]
         the plotting backend to use.
     run_time : Optional[int]
@@ -167,7 +190,8 @@ def plot_single_axion_simulation(
         lam,
         n,
         K,
-        turn_on_time,
+        t0,
+        growth,
         run_time,
         seed,
     )
@@ -203,10 +227,7 @@ def plot_single_axion_simulation(
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Strings
         plot_api.draw_image(strings, 1, 0, highlight_settings)
-        if idx - 1 < turn_on_time:
-            plot_api.set_title(r"Strings (Axion Potential OFF)", 1)
-        else:
-            plot_api.set_title(r"Strings (Axion Potential ON)", 1)
+        plot_api.set_title(r"Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.flush()
     plot_api.close()
@@ -222,7 +243,8 @@ def run_single_axion_simulation(
     lam: float,
     n: int,
     K: float,
-    turn_on_time: int,
+    t0: float,
+    growth: float,
     run_time: int,
     seed: Optional[int],
 ) -> Generator[Tuple[Field, Field], None, None]:
@@ -248,8 +270,10 @@ def run_single_axion_simulation(
         the color anomaly coefficient N.
     K : float
         the strength of the axion potential.
-    turn_on_time : int
-        the number of steps before turning on axion potential.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    growth : float
+        the power law exponent of the strength growth.
     run_time : int
         the number of timesteps simulated.
     seed : Optional[int]
@@ -274,7 +298,7 @@ def run_single_axion_simulation(
         phi_real,
         phidot_real,
         potential_derivative_single_axion_real(
-            phi_real, phi_imaginary, eta, lam, n, 0
+            phi_real, phi_imaginary, eta, lam, n, K, t, t0, growth
         ),
         alpha,
         era,
@@ -285,7 +309,7 @@ def run_single_axion_simulation(
         phi_imaginary,
         phidot_imaginary,
         potential_derivative_single_axion_imaginary(
-            phi_imaginary, phi_real, eta, lam, n, 0
+            phi_imaginary, phi_real, eta, lam, n, K, t, t0, growth
         ),
         alpha,
         era,
@@ -302,11 +326,6 @@ def run_single_axion_simulation(
 
     # Run loop
     for i in range(run_time):
-        # Turn on axion potential after field settles down
-        if i < turn_on_time:
-            strength = 0
-        else:
-            strength = K
         # Evolve phi
         phi_real_field.value = evolve_field(
             phi_real_field.value,
@@ -333,7 +352,10 @@ def run_single_axion_simulation(
                 eta,
                 lam,
                 n,
-                strength,
+                K,
+                t,
+                t0,
+                growth,
             ),
             alpha,
             era,
@@ -349,7 +371,10 @@ def run_single_axion_simulation(
                 eta,
                 lam,
                 n,
-                strength,
+                K,
+                t,
+                t0,
+                growth,
             ),
             alpha,
             era,

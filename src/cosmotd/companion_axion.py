@@ -12,6 +12,10 @@ from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
+# NOTE: Should t0 be different for the two potential terms?
+# NOTE: Forgot but what should n_growth for single axion and companion axion case be?
+
+
 # Parameters used in companion axion paper
 # n = 3
 # n_prime = 1 / 2
@@ -33,6 +37,10 @@ def potential_derivative_ca_phi1(
     m_prime: float,
     K: float,
     kappa: float,
+    t: float,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the companion axion potential with respect to the real part of the field phi.
 
@@ -62,6 +70,14 @@ def potential_derivative_ca_phi1(
         the strength of the axion potential.
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
 
     Returns
     -------
@@ -77,6 +93,7 @@ def potential_derivative_ca_phi1(
         2
         * n
         * K
+        * (t / t0) ** n_growth
         * np.sin(
             n * np.arctan2(phi_imaginary, phi_real)
             + n_prime * np.arctan2(psi_imaginary, psi_real)
@@ -89,6 +106,7 @@ def potential_derivative_ca_phi1(
         2
         * m
         * K
+        * (t / t0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -113,6 +131,10 @@ def potential_derivative_ca_phi2(
     m_prime: float,
     K: float,
     kappa: float,
+    t: float,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the companion axion potential with respect to the imaginary part of the field phi.
 
@@ -142,6 +164,14 @@ def potential_derivative_ca_phi2(
         the strength of the axion potential.
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
 
     Returns
     -------
@@ -157,6 +187,7 @@ def potential_derivative_ca_phi2(
         2
         * n
         * K
+        * (t / t0) ** n_growth
         * np.sin(
             n * np.arctan2(phi_imaginary, phi_real)
             + n_prime * np.arctan2(psi_imaginary, psi_real)
@@ -169,6 +200,7 @@ def potential_derivative_ca_phi2(
         2
         * m
         * K
+        * (t / t0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -193,6 +225,10 @@ def potential_derivative_ca_psi1(
     m_prime: float,
     K: float,
     kappa: float,
+    t: float,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the companion axion potential with respect to the real part of the field psi.
 
@@ -222,6 +258,14 @@ def potential_derivative_ca_psi1(
         the strength of the axion potential.
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
 
     Returns
     -------
@@ -237,6 +281,7 @@ def potential_derivative_ca_psi1(
         2
         * n_prime
         * K
+        * (t / t0) ** n_growth
         * np.sin(
             n * np.arctan2(phi_imaginary, phi_real)
             + n_prime * np.arctan2(psi_imaginary, psi_real)
@@ -249,6 +294,7 @@ def potential_derivative_ca_psi1(
         2
         * m_prime
         * K
+        * (t / t0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -273,6 +319,10 @@ def potential_derivative_ca_psi2(
     m_prime: float,
     K: float,
     kappa: float,
+    t: float,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
 ) -> np.ndarray:
     """Calculates the derivative of the companion axion potential with respect to the imaginary part of the field psi.
 
@@ -302,6 +352,14 @@ def potential_derivative_ca_psi2(
         the strength of the axion potential.
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
+    t : float
+        the current time.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
 
     Returns
     -------
@@ -317,6 +375,7 @@ def potential_derivative_ca_psi2(
         2
         * n_prime
         * K
+        * (t / t0) ** n_growth
         * np.sin(
             n * np.arctan2(phi_imaginary, phi_real)
             + n_prime * np.arctan2(psi_imaginary, psi_real)
@@ -329,6 +388,7 @@ def potential_derivative_ca_psi2(
         2
         * m_prime
         * K
+        * (t / t0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -354,53 +414,55 @@ def plot_companion_axion_simulation(
     m_prime: float,
     K: float,
     kappa: float,
-    turn_on_time: int,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
     plot_backend: Type[Plotter],
     run_time: Optional[int],
     seed: Optional[int],
 ):
     """Plots a companion axion model simulation in two dimensions.
 
-       Parameters
-       ----------
-       N : int
-           the size of the field to simulate.
-       dx : float
-           the spacing between grid points.
-       dt : float
-           the time interval between timesteps.
-       alpha : float
-           a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
-       eta : float
-           the location of the symmetry broken minima.
-       era : float
-           the cosmological era.
-       lam : float
-           the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
-       n : float
-           the first color anomaly coefficient of the phi field.
-       n_prime : float
-           the first color anomaly coefficient of the psi field.
-       m : float
-           the second color anomaly coefficient of the phi field.
-       m_prime : float
-           the second color anomaly coefficient of the psi field.
-       K : float
-           the strength of the symmetry breaking compared to the standard potential.
-       kappa : float
-           the strength of the second axion potential term relative to the other axion potential.
-       turn_on_time : int
-           the number ofK : float
-           the strength of the symmetry breaking compared to the standard potential.
-       kappa : float
-           the strength of the second axion potential term relative to the other axion potential.
-    steps before turning on the axion potential.
-       plot_backend : Type[Plotter]
-           the plotting backend to use.
-       run_time : Optional[int]
-           the number of timesteps simulated.
-       seed : Optional[int]
-           the seed used in generation of the initial state of the field.
+    Parameters
+    ----------
+    N : int
+        the size of the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    eta : float
+        the location of the symmetry broken minima.
+    era : float
+        the cosmological era.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    n_prime : float
+        the first color anomaly coefficient of the psi field.
+    m : float
+        the second color anomaly coefficient of the phi field.
+    m_prime : float
+        the second color anomaly coefficient of the psi field.
+    K : float
+        the strength of the symmetry breaking compared to the standard potential.
+    kappa : float
+        the strength of the second axion potential term relative to the other axion potential.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
+    plot_backend : Type[Plotter]
+        the plotting backend to use.
+    run_time : Optional[int]
+        the number of timesteps simulated.
+    seed : Optional[int]
+        the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
@@ -421,7 +483,9 @@ def plot_companion_axion_simulation(
         m_prime,
         K,
         kappa,
-        turn_on_time,
+        t0,
+        n_growth,
+        m_growth,
         run_time,
         seed,
     )
@@ -491,7 +555,9 @@ def run_companion_axion_simulation(
     m_prime: float,
     K: float,
     kappa: float,
-    turn_on_time: int,
+    t0: float,
+    n_growth: float,
+    m_growth: float,
     run_time: int,
     seed: Optional[int],
 ) -> Generator[Tuple[Field, Field, Field, Field], None, None]:
@@ -525,8 +591,12 @@ def run_companion_axion_simulation(
         the strength of the axion potential.
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
-    turn_on_time : int
-        the number of steps before turning on the axion potential.
+    t0 : float
+        the characteristic timescale of the axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
     run_time : int
         the number of timesteps simulated.
     seed : Optional[int]
@@ -564,8 +634,12 @@ def run_companion_axion_simulation(
             n_prime,
             m,
             m_prime,
-            0,
+            K,
             kappa,
+            t,
+            t0,
+            n_growth,
+            m_growth,
         ),
         alpha,
         era,
@@ -586,8 +660,12 @@ def run_companion_axion_simulation(
             n_prime,
             m,
             m_prime,
-            0,
+            K,
             kappa,
+            t,
+            t0,
+            n_growth,
+            m_growth,
         ),
         alpha,
         era,
@@ -608,8 +686,12 @@ def run_companion_axion_simulation(
             n_prime,
             m,
             m_prime,
-            0,
+            K,
             kappa,
+            t,
+            t0,
+            n_growth,
+            m_growth,
         ),
         alpha,
         era,
@@ -630,8 +712,12 @@ def run_companion_axion_simulation(
             n_prime,
             m,
             m_prime,
-            0,
+            K,
             kappa,
+            t,
+            t0,
+            n_growth,
+            m_growth,
         ),
         alpha,
         era,
@@ -650,11 +736,6 @@ def run_companion_axion_simulation(
 
     # Run loop
     for i in range(run_time):
-        # Turn on companion axion potential after field settles down
-        if i < turn_on_time:
-            strength = 0
-        else:
-            strength = K
         # Evolve phi
         phi_real_field.value = evolve_field(
             phi_real_field.value,
@@ -699,8 +780,12 @@ def run_companion_axion_simulation(
                 n_prime,
                 m,
                 m_prime,
-                strength,
+                K,
                 kappa,
+                t,
+                t0,
+                n_growth,
+                m_growth,
             ),
             alpha,
             era,
@@ -721,8 +806,12 @@ def run_companion_axion_simulation(
                 n_prime,
                 m,
                 m_prime,
-                strength,
+                K,
                 kappa,
+                t,
+                t0,
+                n_growth,
+                m_growth,
             ),
             alpha,
             era,
@@ -743,8 +832,12 @@ def run_companion_axion_simulation(
                 n_prime,
                 m,
                 m_prime,
-                strength,
+                K,
                 kappa,
+                t,
+                t0,
+                n_growth,
+                m_growth,
             ),
             alpha,
             era,
@@ -765,8 +858,12 @@ def run_companion_axion_simulation(
                 n_prime,
                 m,
                 m_prime,
-                strength,
+                K,
                 kappa,
+                t,
+                t0,
+                n_growth,
+                m_growth,
             ),
             alpha,
             era,
