@@ -4,10 +4,28 @@
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 import scipy.signal
 
 
-def find_domain_walls_with_width(field: np.ndarray, w: float) -> np.ndarray:
+def find_domain_walls_with_width(
+    field: npt.NDArray[np.float32], w: float
+) -> npt.NDArray[np.float32]:
+    """Returns an array that has the same size as the input array `field`, that is zero everywhere except at domain walls.
+    This is done through matrix convolution with periodic boundary conditions to find zero crossings. This particular function
+    counts diagonal zero crossings as well as in the cardinal directions. Each cell will check cells within a given width for
+    zero crossings.
+
+    Parameters
+    ----------
+    field : npt.NDArray[np.float32]
+        the field to find domain walls in.
+
+    Returns
+    -------
+    highlighted : npt.NDArray[np.float32]
+        an array where domain walls are highlighted with non-zero values.
+    """
     # Domain wall width in a discrete grid can only increase if w is even due to the symmetry of zero crossings.
     width = int(max(np.floor(w / 2), 1))
     N = 2 * width + 1
@@ -22,19 +40,22 @@ def find_domain_walls_with_width(field: np.ndarray, w: float) -> np.ndarray:
     return highlighted
 
 
-def find_domain_walls_diagonal(field: np.ndarray) -> np.ndarray:
+def find_domain_walls_diagonal(
+    field: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
     """Returns an array that has the same size as the input array `field`, that is zero everywhere except at domain walls.
     This is done through matrix convolution with periodic boundary conditions to find zero crossings. This particular function
-    counts diagonal zero crossings as well as in the cardinal directions.
+    counts diagonal zero crossings as well as in the cardinal directions. Note that this function return domain walls with
+    the smallest width possible.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the field to find domain walls in.
 
     Returns
     -------
-    highlighted : np.ndarray
+    highlighted : npt.NDArray[np.float32]
         an array where domain walls are highlighted with non-zero values.
     """
     # Convolution kernel that includes diagonals
@@ -54,19 +75,22 @@ def find_domain_walls_diagonal(field: np.ndarray) -> np.ndarray:
     return highlighted
 
 
-def find_domain_walls_cardinal(field: np.ndarray) -> np.ndarray:
+def find_domain_walls_cardinal(
+    field: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
     """Returns an array that has the same size as the input array `field`, that is zero everywhere except at domain walls.
     This is done through matrix convolution with periodic boundary conditions to find zero crossings. This particular function
-    does not count diagonal zero crossings, only zero crossings in the cardinal directions.
+    does not count diagonal zero crossings, only zero crossings in the cardinal directions. Note that this function return domain
+    walls with the smallest width possible.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the field to find domain walls in.
 
     Returns
     -------
-    highlighted : np.ndarray
+    highlighted : npt.NDArray[np.float32]
         an array where domain walls are highlighted with non-zero values.
     """
     # Convolution kernel only in the cardinal directions

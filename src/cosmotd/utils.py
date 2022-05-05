@@ -3,6 +3,7 @@
 # External modules
 from numba import njit
 import numpy as np
+from numpy import typing as npt
 import scipy.signal
 
 
@@ -16,20 +17,22 @@ Laplacian
 # NOTE: The iterative JIT-compiled version of the Laplacian 2D function is faster than the matrix version by 2x, likely due to
 # matrices having to be allocated in the np.roll function.
 @njit
-def laplacian2D_iterative(phi: np.ndarray, dx: float) -> np.ndarray:
+def laplacian2D_iterative(
+    phi: npt.NDArray[np.float32], dx: float
+) -> npt.NDArray[np.float32]:
     """Computes the Laplacian of a discrete 2D scalar field `phi` given a spacing `dx`. This is done
     to a fourth-order approximation. The computation is done iteratively per cell.
 
     Parameters
     ----------
-    phi : np.ndarray
+    phi : npt.NDArray[np.float32]
         a discrete 2D scalar field to compute the Laplacian of.
     dx : float
         the spacing between points of the field `phi`.
 
     Returns
     -------
-    ddphi : np.ndarray
+    ddphi : npt.NDArray[np.float32]
         the Laplacian of the field `phi` to a fourth-order approximation.
     """
 
@@ -60,20 +63,22 @@ def laplacian2D_iterative(phi: np.ndarray, dx: float) -> np.ndarray:
     return ddphi
 
 
-def laplacian2D_matrix(phi: np.ndarray, dx: float) -> np.ndarray:
+def laplacian2D_matrix(
+    phi: npt.NDArray[np.float32], dx: float
+) -> npt.NDArray[np.float32]:
     """Computes the Laplacian of a discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
     to a fourth-order approximation. The computation is done via array operations.
 
     Parameters
     ----------
-    phi : np.ndarray
+    phi : npt.NDArray[np.float32]
         a discrete 2D scalar field to compute the Laplacian of.
     dx : float
         the spacing between points of the field `phi`.
 
     Returns
     -------
-    ddphi : np.ndarray
+    ddphi : npt.NDArray[np.float32]
         the Laplacian of the field `phi` to a fourth-order approximation.
     """
     phi_i_add1 = np.roll(phi, -1, 0)
@@ -104,20 +109,22 @@ def laplacian2D_matrix(phi: np.ndarray, dx: float) -> np.ndarray:
     return ddphi
 
 
-def laplacian2D_convolve(phi: np.ndarray, dx: float) -> np.ndarray:
+def laplacian2D_convolve(
+    phi: npt.NDArray[np.float32], dx: float
+) -> npt.NDArray[np.float32]:
     """Computes the Laplacian of a discrete 2D scalar field `phi` given a spacing `dx` and size `N`. This is done
     to a fourth-order approximation. The computation is done via convolution.
 
     Parameters
     ----------
-    phi : np.ndarray
+    phi : npt.NDArray[np.float32]
         a discrete 2D scalar field to compute the Laplacian of.
     dx : float
         the spacing between points of the field `phi`.
 
     Returns
     -------
-    ddphi : np.ndarray
+    ddphi : npt.NDArray[np.float32]
         the Laplacian of the field `phi` to a fourth-order approximation.
     """
     kernel = np.array(

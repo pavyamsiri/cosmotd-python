@@ -1,6 +1,7 @@
 # External modules
 from numba import njit
 import numpy as np
+from numpy import typing as npt
 
 
 @njit
@@ -54,22 +55,22 @@ def find_closest_vacua(phi_phase: float, psi_phase: float, epsilon: float) -> in
 
 
 @njit
-def color_vacua(phi: np.ndarray, psi: np.ndarray, epsilon: float) -> np.ndarray:
+def color_vacua(phi: npt.NDArray[np.float32], psi: npt.NDArray[np.float32], epsilon: float) -> npt.NDArray[np.float32]:
     """Color the field into five vacua of the pentavac model. Each point in the field is given a discrete integer [0, 4] according
     to the vacuum it is deemed closest to.
 
     Parameters
     ----------
-    phi : np.ndarray
+    phi : npt.NDArray[np.float32]
         the first complex field.
-    psi : np.ndarray
+    psi : npt.NDArray[np.float32]
         the second complex field.
     epsilon : float
         the symmetry breaking parameter.
 
     Returns
     -------
-    colored_field : np.ndarray
+    colored_field : npt.NDArray[np.float32]
         the field with values from 0 to 4, colored according to the closest vacua.
     """
     M = phi.shape[0]

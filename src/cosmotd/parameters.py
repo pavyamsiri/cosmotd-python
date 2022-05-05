@@ -1,13 +1,13 @@
 """This file contains model parameters for (charged) domain walls and cosmic strings."""
 
 # PRS trick parameter. Should be equal to the number of spatial dimensions.
-ALPHA_2D = 2
-ALPHA_3D = 2
+ALPHA_2D: float = 2.0
+ALPHA_3D: float = 3.0
 # The cosmological era
-RADIATION_ERA = 1
-MATTER_ERA = 1
+RADIATION_ERA: float = 1.0
+MATTER_ERA: float = 2.0
 
 # Spacing between grid points
-DX = 1.0
+DX: float = 1.0
 # Time interval
-DT = 0.1
+DT: float = 0.1

@@ -1,10 +1,11 @@
 """This file contains the necessary functions to run a charged domain wall simulation."""
 
 # Standard modules
-from typing import Optional, Type, Generator, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 # Internal modules
@@ -14,19 +15,19 @@ from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_real_cdw(
-    field: np.ndarray,
-    complex_square_amplitude: np.ndarray,
+    field: npt.NDArray[np.float32],
+    complex_square_amplitude: npt.NDArray[np.float32],
     beta: float,
     eta: float,
     lam: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the charged domain wall potential with respect to the real scalar field.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the real scalar field.
-    complex_square_amplitude : np.ndarray
+    complex_square_amplitude : npt.NDArray[np.float32]
         the square amplitude of the complex field.
     beta : float
         the strength of the coupling between the real and complex scalar fields.
@@ -37,7 +38,7 @@ def potential_derivative_real_cdw(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the potential derivative.
     """
     # Potential term
@@ -48,23 +49,23 @@ def potential_derivative_real_cdw(
 
 
 def potential_derivative_complex_cdw(
-    field: np.ndarray,
-    other_field: np.ndarray,
-    real_field: np.ndarray,
+    field: npt.NDArray[np.float32],
+    other_field: npt.NDArray[np.float32],
+    real_field: npt.NDArray[np.float32],
     beta: float,
     eta: float,
     lam: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """
     Evolves the acceleration of one component of a complex scalar field.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the component of a complex field.
-    velocity : np.ndarray
+    velocity : npt.NDArray[np.float32]
         the velocity of the component of a complex field.
-    real_field : np.ndarray
+    real_field : npt.NDArray[np.float32]
         the real scalar field.
     alpha : float
         a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
@@ -77,7 +78,7 @@ def potential_derivative_complex_cdw(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the potential derivative.
     """
     # Potential term
@@ -99,9 +100,9 @@ def plot_charged_domain_wall_simulation(
     lam_sigma: float,
     charge_density: float,
     era: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a charged domain wall simulation in 2D.
 
@@ -129,9 +130,11 @@ def plot_charged_domain_wall_simulation(
         the initial charge density that determines the initial condition of the complex scalar field.
     era : float
         the cosmological era.
+    plot_backend : type[Plotter]
+        the plotting backend to use.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -207,8 +210,8 @@ def run_charged_domain_wall_simulation(
     charge_density: float,
     era: float,
     run_time: int,
-    seed: Optional[int],
-) -> Generator[Tuple[Field, Field, Field], None, None]:
+    seed: int | None,
+) -> Generator[tuple[Field, Field, Field], None, None]:
     """Runs a charged domain wall simulation in 2D.
 
     Parameters
@@ -237,8 +240,17 @@ def run_charged_domain_wall_simulation(
         the cosmological era.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi_field : Field
+        the real scalar field phi.
+    sigma_real_field : Field
+        the real component of the sigma field.
+    sigma_imaginary_field : Field
+        the imaginary component of the sigma field.
     """
     # Clock
     t = 1.0 * dt

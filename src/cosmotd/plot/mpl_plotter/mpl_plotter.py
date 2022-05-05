@@ -1,9 +1,7 @@
-# Standard modules
-from typing import Optional
-
 # External modules
 from matplotlib import pyplot as plt
 import numpy as np
+from numpy import typing as npt
 
 # Internal modules
 from cosmotd.plot.plotter import DPI, Plotter
@@ -57,7 +55,7 @@ class MplPlotter(Plotter):
 
     def draw_image(
         self,
-        data: np.ndarray,
+        data: npt.NDArray[np.float32],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -86,8 +84,8 @@ class MplPlotter(Plotter):
 
     def draw_plot(
         self,
-        xdata: np.ndarray,
-        ydata: np.ndarray,
+        xdata: npt.NDArray[np.float32],
+        ydata: npt.NDArray[np.float32],
         axis_index: int,
         line_index: int,
         line_config: LineConfig,
@@ -103,8 +101,8 @@ class MplPlotter(Plotter):
 
     def draw_scatter(
         self,
-        xdata: np.ndarray,
-        ydata: np.ndarray,
+        xdata: npt.NDArray[np.float32],
+        ydata: npt.NDArray[np.float32],
         axis_index: int,
         scatter_index: int,
         scatter_config: ScatterConfig,
@@ -140,10 +138,10 @@ class MplPlotter(Plotter):
 
     def set_axes_limits(
         self,
-        x_min: Optional[float],
-        x_max: Optional[float],
-        y_min: Optional[float],
-        y_max: Optional[float],
+        x_min: float | None,
+        x_max: float | None,
+        y_min: float | None,
+        y_max: float | None,
         axis_index: int,
     ):
         # Set axes limits

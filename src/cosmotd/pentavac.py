@@ -1,8 +1,9 @@
 # Standard modules
-from typing import Optional, Type, Generator, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 # Internal modules
@@ -11,32 +12,34 @@ from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 from .pentavac_algorithms import color_vacua
 
+import numpy.typing as npt
+
 
 def potential_derivative_phi1_pentavac(
-    phi1: np.ndarray,
-    phi2: np.ndarray,
-    phi3: np.ndarray,
-    phi4: np.ndarray,
+    phi1: npt.NDArray[np.float32],
+    phi2: npt.NDArray[np.float32],
+    phi3: npt.NDArray[np.float32],
+    phi4: npt.NDArray[np.float32],
     epsilon: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the pentavac potential with respect to phi1.
 
     Parameters
     ----------
-    phi1 : np.ndarray
+    phi1 : npt.NDArray[np.float32]
         the real component of the field phi.
-    phi2 : np.ndarray
+    phi2 : npt.NDArray[np.float32]
         the imaginary component of the field phi.
-    phi3 : np.ndarray
+    phi3 : npt.NDArray[np.float32]
         the real component of the field psi.
-    phi4 : np.ndarray
+    phi4 : npt.NDArray[np.float32]
         the imaginary component of the field psi.
     epsilon : float
         the symmetry breaking parameter.
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the evolved acceleration.
     """
     # Potential term
@@ -53,30 +56,30 @@ def potential_derivative_phi1_pentavac(
 
 
 def potential_derivative_phi2_pentavac(
-    phi1: np.ndarray,
-    phi2: np.ndarray,
-    phi3: np.ndarray,
-    phi4: np.ndarray,
+    phi1: npt.NDArray[np.float32],
+    phi2: npt.NDArray[np.float32],
+    phi3: npt.NDArray[np.float32],
+    phi4: npt.NDArray[np.float32],
     epsilon: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the pentavac potential with respect to phi2.
 
     Parameters
     ----------
-    phi1 : np.ndarray
+    phi1 : npt.NDArray[np.float32]
         the real component of the field phi.
-    phi2 : np.ndarray
+    phi2 : npt.NDArray[np.float32]
         the imaginary component of the field phi.
-    phi3 : np.ndarray
+    phi3 : npt.NDArray[np.float32]
         the real component of the field psi.
-    phi4 : np.ndarray
+    phi4 : npt.NDArray[np.float32]
         the imaginary component of the field psi.
     epsilon : float
         the symmetry breaking parameter.
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the evolved acceleration.
     """
     # Potential term
@@ -93,30 +96,30 @@ def potential_derivative_phi2_pentavac(
 
 
 def potential_derivative_phi3_pentavac(
-    phi1: np.ndarray,
-    phi2: np.ndarray,
-    phi3: np.ndarray,
-    phi4: np.ndarray,
+    phi1: npt.NDArray[np.float32],
+    phi2: npt.NDArray[np.float32],
+    phi3: npt.NDArray[np.float32],
+    phi4: npt.NDArray[np.float32],
     epsilon: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the pentavac potential with respect to phi3.
 
     Parameters
     ----------
-    phi1 : np.ndarray
+    phi1 : npt.NDArray[np.float32]
         the real component of the field phi.
-    phi2 : np.ndarray
+    phi2 : npt.NDArray[np.float32]
         the imaginary component of the field phi.
-    phi3 : np.ndarray
+    phi3 : npt.NDArray[np.float32]
         the real component of the field psi.
-    phi4 : np.ndarray
+    phi4 : npt.NDArray[np.float32]
         the imaginary component of the field psi.
     epsilon : float
         the symmetry breaking parameter.
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the evolved acceleration.
     """
     # Potential term
@@ -133,30 +136,30 @@ def potential_derivative_phi3_pentavac(
 
 
 def potential_derivative_phi4_pentavac(
-    phi1: np.ndarray,
-    phi2: np.ndarray,
-    phi3: np.ndarray,
-    phi4: np.ndarray,
+    phi1: npt.NDArray[np.float32],
+    phi2: npt.NDArray[np.float32],
+    phi3: npt.NDArray[np.float32],
+    phi4: npt.NDArray[np.float32],
     epsilon: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the pentavac potential with respect to phi4.
 
     Parameters
     ----------
-    phi1 : np.ndarray
+    phi1 : npt.NDArray[np.float32]
         the real component of the field phi.
-    phi2 : np.ndarray
+    phi2 : npt.NDArray[np.float32]
         the imaginary component of the field phi.
-    phi3 : np.ndarray
+    phi3 : npt.NDArray[np.float32]
         the real component of the field psi.
-    phi4 : np.ndarray
+    phi4 : npt.NDArray[np.float32]
         the imaginary component of the field psi.
     epsilon : float
         the symmetry breaking parameter.
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the evolved acceleration.
     """
     # Potential term
@@ -180,9 +183,9 @@ def plot_pentavac_simulation(
     alpha: float,
     epsilon: float,
     era: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a domain wall simulation in two dimensions.
 
@@ -202,11 +205,11 @@ def plot_pentavac_simulation(
         a parameter in the pentavac model.
     era : float
         the cosmological era.
-    plot_backend: Type[Plotter]
+    plot_backend: type[Plotter]
         the plotting backend to use.
-    run_time : Optional[int]
+    run_time : int | None
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -271,8 +274,8 @@ def run_pentavac_simulation(
     epsilon: float,
     era: float,
     run_time: int,
-    seed: Optional[int],
-) -> Generator[Tuple[Field, Field, Field, Field], None, None]:
+    seed: int | None,
+) -> Generator[tuple[Field, Field, Field, Field], None, None]:
     """Runs a domain wall simulation in two dimensions.
 
     Parameters
@@ -293,8 +296,19 @@ def run_pentavac_simulation(
         the cosmological era.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi1_field : Field
+        the real component of the phi field.
+    phi2_field : Field
+        the imaginary component of the phi field.
+    phi3_field : Field
+        the real component of the psi field.
+    phi4_field : Field
+        the imaginary component of the psi field.
     """
     # Clock
     t = 1.0 * dt

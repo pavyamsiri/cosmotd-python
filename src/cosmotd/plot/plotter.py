@@ -1,9 +1,9 @@
 # Standard modules
 from abc import ABC, abstractmethod
-from typing import Optional
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 
 # Internal modules
 from .settings import PlotterConfig, LineConfig, ImageConfig, ScatterConfig
@@ -49,7 +49,7 @@ class Plotter(ABC):
     @abstractmethod
     def draw_image(
         self,
-        data: np.ndarray,
+        data: npt.NDArray[np.float32],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -58,7 +58,7 @@ class Plotter(ABC):
 
         Parameters
         ----------
-        data : np.ndarray
+        data : npt.NDArray[np.float32]
             the 2D array to draw.
         axis_index : int
             the index of the primary axis to draw the image to.
@@ -72,8 +72,8 @@ class Plotter(ABC):
     @abstractmethod
     def draw_plot(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
         axis_index: int,
         line_index: int,
         line_config: LineConfig,
@@ -82,9 +82,9 @@ class Plotter(ABC):
 
         Parameters
         ----------
-        x : np.ndarray
+        x : npt.NDArray[np.float32]
             the data along the x-axis.
-        y : np.ndarray
+        y : npt.NDArray[np.float32]
             the data along the y-axis.
         axis_index : int
             the index of the primary axis to draw the scatter plot to.
@@ -98,8 +98,8 @@ class Plotter(ABC):
     @abstractmethod
     def draw_scatter(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
         axis_index: int,
         scatter_index: int,
         scatter_config: ScatterConfig,
@@ -108,9 +108,9 @@ class Plotter(ABC):
 
         Parameters
         ----------
-        x : np.ndarray
+        x : npt.NDArray[np.float32]
             the data along the x-axis.
-        y : np.ndarray
+        y : npt.NDArray[np.float32]
             the data along the y-axis.
         axis_index : int
             the index of the primary axis to draw the line to.
@@ -167,23 +167,23 @@ class Plotter(ABC):
     @abstractmethod
     def set_axes_limits(
         self,
-        x_min: Optional[float],
-        x_max: Optional[float],
-        y_min: Optional[float],
-        y_max: Optional[float],
+        x_min: float | None,
+        x_max: float | None,
+        y_min: float | None,
+        y_max: float | None,
         axis_index: int,
     ):
         """Sets the limits of the x and y axes.
 
         Parameters
         ----------
-        x_min : Optional[float]
+        x_min : float | None
             the minimum x value.
-        x_max : Optional[float]
+        x_max : float | None
             the maximum x value.
-        y_min : Optional[float]
+        y_min : float | None
             the minimum y value.
-        y_max : Optional[float]
+        y_max : float | None
             the maximum y value.
         axis_index : int
             the index of the primary axis to set the axes limits of.
@@ -208,7 +208,7 @@ class MockPlotter(Plotter):
 
     def draw_image(
         self,
-        data: np.ndarray,
+        data: npt.NDArray[np.float32],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -217,8 +217,8 @@ class MockPlotter(Plotter):
 
     def draw_plot(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
         axis_index: int,
         line_index: int,
         line_config: LineConfig,
@@ -227,8 +227,8 @@ class MockPlotter(Plotter):
 
     def draw_scatter(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
         axis_index: int,
         scatter_index: int,
         scatter_config: ScatterConfig,
@@ -246,10 +246,10 @@ class MockPlotter(Plotter):
 
     def set_axes_limits(
         self,
-        x_min: Optional[float],
-        x_max: Optional[float],
-        y_min: Optional[float],
-        y_max: Optional[float],
+        x_min: float | None,
+        x_max: float | None,
+        y_min: float | None,
+        y_max: float | None,
         axis_index: int,
     ):
         pass

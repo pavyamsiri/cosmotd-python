@@ -1,11 +1,11 @@
 """This file contains the necessary functions to run a cosmic string simulation."""
 
 # Standard modules
-from turtle import pos
-from typing import Optional, Type, Generator, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 from cosmotd.plot.settings import ScatterConfig
@@ -18,18 +18,18 @@ from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_cs(
-    field: np.ndarray,
-    other_field: np.ndarray,
+    field: npt.NDArray[np.float32],
+    other_field: npt.NDArray[np.float32],
     eta: float,
     lam: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the cosmic string potential with respect to a field.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the component of a complex field.
-    other_field : np.ndarray
+    other_field : npt.NDArray[np.float32]
         the other component of the field.
     eta : float
         the location of the symmetry broken minima.
@@ -38,7 +38,7 @@ def potential_derivative_cs(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the potential derivative.
     """
     # Potential term
@@ -55,9 +55,9 @@ def plot_cosmic_string_simulation(
     eta: float,
     era: float,
     lam: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a cosmic string simulation in two dimensions.
 
@@ -77,11 +77,11 @@ def plot_cosmic_string_simulation(
         the cosmological era.
     lam : float
         the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
-    plot_backend : Type[Plotter]
+    plot_backend : type[Plotter]
         the plotting backend to use.
-    run_time : Optional[int]
+    run_time : int | None
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -154,8 +154,8 @@ def run_cosmic_string_simulation(
     era: float,
     lam: float,
     run_time: int,
-    seed: Optional[int],
-) -> Generator[Tuple[Field, Field], None, None]:
+    seed: int | None,
+) -> Generator[tuple[Field, Field], None, None]:
     """Runs a cosmic string simulation in two dimensions.
 
     Parameters
@@ -176,8 +176,15 @@ def run_cosmic_string_simulation(
         the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi_real_field : Field
+        the real component of the phi field.
+    phi_imaginary_field : Field
+        the imaginary component of the phi field.
     """
     # Clock
     t = 1.0 * dt

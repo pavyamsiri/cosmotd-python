@@ -1,8 +1,9 @@
 # Standard modules
-from typing import Optional, Type, Generator, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 from cosmotd.plot.settings import ScatterConfig
@@ -27,10 +28,10 @@ from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_ca_phi1(
-    phi_real: np.ndarray,
-    phi_imaginary: np.ndarray,
-    psi_real: np.ndarray,
-    psi_imaginary: np.ndarray,
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    psi_real: npt.NDArray[np.float32],
+    psi_imaginary: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: float,
@@ -43,18 +44,18 @@ def potential_derivative_ca_phi1(
     t0: float,
     n_growth: float,
     m_growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the companion axion potential with respect to the real part of the field phi.
 
     Parameters
     ----------
-    phi_real : np.ndarray
+    phi_real : npt.NDArray[np.float32]
         the real part of the field phi.
-    phi_imaginary : np.ndarray
+    phi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field phi.
-    psi_real : np.ndarray
+    psi_real : npt.NDArray[np.float32]
         the real part of the field psi.
-    psi_imaginary : np.ndarray
+    psi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field psi.
     eta : float
         the location of the symmetry broken minima.
@@ -83,7 +84,7 @@ def potential_derivative_ca_phi1(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -121,10 +122,10 @@ def potential_derivative_ca_phi1(
 
 
 def potential_derivative_ca_phi2(
-    phi_real: np.ndarray,
-    phi_imaginary: np.ndarray,
-    psi_real: np.ndarray,
-    psi_imaginary: np.ndarray,
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    psi_real: npt.NDArray[np.float32],
+    psi_imaginary: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: float,
@@ -137,18 +138,18 @@ def potential_derivative_ca_phi2(
     t0: float,
     n_growth: float,
     m_growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the companion axion potential with respect to the imaginary part of the field phi.
 
     Parameters
     ----------
-    phi_real : np.ndarray
+    phi_real : npt.NDArray[np.float32]
         the real part of the field phi.
-    phi_imaginary : np.ndarray
+    phi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field phi.
-    psi_real : np.ndarray
+    psi_real : npt.NDArray[np.float32]
         the real part of the field psi.
-    psi_imaginary : np.ndarray
+    psi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field psi.
     eta : float
         the location of the symmetry broken minima.
@@ -177,7 +178,7 @@ def potential_derivative_ca_phi2(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -215,10 +216,10 @@ def potential_derivative_ca_phi2(
 
 
 def potential_derivative_ca_psi1(
-    phi_real: np.ndarray,
-    phi_imaginary: np.ndarray,
-    psi_real: np.ndarray,
-    psi_imaginary: np.ndarray,
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    psi_real: npt.NDArray[np.float32],
+    psi_imaginary: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: float,
@@ -231,18 +232,18 @@ def potential_derivative_ca_psi1(
     t0: float,
     n_growth: float,
     m_growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the companion axion potential with respect to the real part of the field psi.
 
     Parameters
     ----------
-    phi_real : np.ndarray
+    phi_real : npt.NDArray[np.float32]
         the real part of the field phi.
-    phi_imaginary : np.ndarray
+    phi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field phi.
-    psi_real : np.ndarray
+    psi_real : npt.NDArray[np.float32]
         the real part of the field psi.
-    psi_imaginary : np.ndarray
+    psi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field psi.
     eta : float
         the location of the symmetry broken minima.
@@ -271,7 +272,7 @@ def potential_derivative_ca_psi1(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -309,10 +310,10 @@ def potential_derivative_ca_psi1(
 
 
 def potential_derivative_ca_psi2(
-    phi_real: np.ndarray,
-    phi_imaginary: np.ndarray,
-    psi_real: np.ndarray,
-    psi_imaginary: np.ndarray,
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    psi_real: npt.NDArray[np.float32],
+    psi_imaginary: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: float,
@@ -325,18 +326,18 @@ def potential_derivative_ca_psi2(
     t0: float,
     n_growth: float,
     m_growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the companion axion potential with respect to the imaginary part of the field psi.
 
     Parameters
     ----------
-    phi_real : np.ndarray
+    phi_real : npt.NDArray[np.float32]
         the real part of the field phi.
-    phi_imaginary : np.ndarray
+    phi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field phi.
-    psi_real : np.ndarray
+    psi_real : npt.NDArray[np.float32]
         the real part of the field psi.
-    psi_imaginary : np.ndarray
+    psi_imaginary : npt.NDArray[np.float32]
         the imaginary part of the field psi.
     eta : float
         the location of the symmetry broken minima.
@@ -365,7 +366,7 @@ def potential_derivative_ca_psi2(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -419,9 +420,9 @@ def plot_companion_axion_simulation(
     t0: float,
     n_growth: float,
     m_growth: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a companion axion model simulation in two dimensions.
 
@@ -459,11 +460,11 @@ def plot_companion_axion_simulation(
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
         the power law exponent of the strength growth of the second axion potential term.
-    plot_backend : Type[Plotter]
+    plot_backend : type[Plotter]
         the plotting backend to use.
-    run_time : Optional[int]
+    run_time : int | None
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -601,8 +602,8 @@ def run_companion_axion_simulation(
     n_growth: float,
     m_growth: float,
     run_time: int,
-    seed: Optional[int],
-) -> Generator[Tuple[Field, Field, Field, Field], None, None]:
+    seed: int | None,
+) -> Generator[tuple[Field, Field, Field, Field], None, None]:
     """Runs a cosmic string simulation in two dimensions.
 
     Parameters
@@ -641,8 +642,19 @@ def run_companion_axion_simulation(
         the power law exponent of the strength growth of the second axion potential term.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi_real_field : Field
+        the real component of the phi field.
+    phi_imaginary_field : Field
+        the imaginary component of the phi field.
+    psi_real_field : Field
+        the real component of the psi field.
+    psi_imaginary_field : Field
+        the imaginary component of the psi field.
     """
     # Clock
     t = 1.0 * dt

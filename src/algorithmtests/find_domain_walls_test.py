@@ -4,11 +4,12 @@ from typing import Tuple
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 
 # Internal modules
 from cosmotd.domain_wall_algorithms import (
-    find_domain_walls_convolve_cardinal,
-    find_domain_walls_convolve_diagonal,
+    find_domain_walls_cardinal,
+    find_domain_walls_diagonal,
 )
 
 # Correction factor between grid counts and smooth edges
@@ -127,7 +128,7 @@ def compare_cardinal_diagonal_many_circles(
         # Number of points in grid
         n = 5 * r
         # Initialise field to -1
-        field = -1 * np.ones((n, n))
+        field: npt.NDArray[np.float32] = -1.0 * np.ones((n, n), dtype=np.float32)
         # Create a circle of radius `r` at the centre of the field
         for i in range(n):
             for j in range(n):
@@ -135,7 +136,7 @@ def compare_cardinal_diagonal_many_circles(
                     field[i][j] = 1
 
         # Count domain walls using only zero crossings along the cardinal directions
-        cardinal_dw = find_domain_walls_convolve_cardinal(field)
+        cardinal_dw = find_domain_walls_cardinal(field)
         # Multiply by correction factor to account for smooth edges
         cardinal_count = CORRECTION_FACTOR * np.count_nonzero(cardinal_dw) / 2
         cardinal_lengths[idx] = cardinal_count
@@ -143,7 +144,7 @@ def compare_cardinal_diagonal_many_circles(
         cardinal_error = circumference - cardinal_count
 
         # Count domain walls using only zero crossings along the cardinal directions and diagonal directions
-        diagonal_dw = find_domain_walls_convolve_diagonal(field)
+        diagonal_dw = find_domain_walls_diagonal(field)
         # Multiply by correction factor to account for smooth edges
         diagonal_count = CORRECTION_FACTOR * np.count_nonzero(diagonal_dw) / 2
         diagonal_lengths[idx] = diagonal_count
@@ -159,7 +160,9 @@ def compare_cardinal_diagonal_many_circles(
             result[CardinalDiagonalComparisonResult.Both] += 1
 
     # Determine best method
-    best_method = max(result, key=result.get)
+    counts = list(result.values())
+    methods = list(result.keys())
+    best_method = methods[counts.index(max(counts))]
     return (best_method, (circumferences, cardinal_lengths, diagonal_lengths))
 
 

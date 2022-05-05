@@ -2,13 +2,15 @@
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from numba import njit
 
 
 @njit
 def find_cosmic_strings_brute_force_small(
-    real_component: np.ndarray, imaginary_component: np.ndarray
-) -> np.ndarray:
+    real_component: npt.NDArray[np.float32],
+    imaginary_component: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
     """Identifies and highlights cosmic strings of a complex scalar field.
     Note that this function takes the sum of the four different 2x2 plaquettes on a 3x3 grid centred on a cell. Hence if there is
     a clockwise string in one plaquette and an anticlockwise string in another plaquette they would cancel out and the cell will
@@ -16,14 +18,14 @@ def find_cosmic_strings_brute_force_small(
 
     Parameters
     ----------
-    real_component : np.ndarray
+    real_component : npt.NDArray[np.float32]
         the real component of the complex scalar field.
-    imaginary_component : np.ndarray
+    imaginary_component : npt.NDArray[np.float32]
         the imaginary component of the complex scalar field.
 
     Returns
     -------
-    highlighted : np.ndarray
+    highlighted : npt.NDArray[np.float32]
         an array where cells adjacent to cosmic strings are marked by +-1 depending on their handedness and cells not next to
         cosmic strings are equal to 0.
     """
@@ -108,22 +110,23 @@ which serves as a bottleneck and so small plaquette method was used as it is hig
 
 @njit
 def find_cosmic_strings_brute_force_large(
-    real_component: np.ndarray, imaginary_component: np.ndarray
-) -> np.ndarray:
+    real_component: npt.NDArray[np.float32],
+    imaginary_component: npt.NDArray[np.float32],
+) -> npt.NDArray[np.float32]:
     """Identifies and highlights cosmic strings of a complex scalar field.
     Note that this function only checks the plaquette of the diagonal corners of a 3x3 grid centred on a cell and hence may miss
     some finer detail captured by the `find_cosmic_strings_brute_force_large` function.
 
     Parameters
     ----------
-    real_component : np.ndarray
+    real_component : npt.NDArray[np.float32]
         the real component of the complex scalar field.
-    imaginary_component : np.ndarray
+    imaginary_component : npt.NDArray[np.float32]
         the imaginary component of the complex scalar field.
 
     Returns
     -------
-    highlighted : np.ndarray
+    highlighted : npt.NDArray[np.float32]
         an array where cells adjacent to cosmic strings are marked by +-1 depending on their handedness and cells not next to
         cosmic strings are equal to 0.
     """
@@ -162,20 +165,23 @@ def find_cosmic_strings_brute_force_large(
 
 @njit
 def check_plaquette(
-    top_left: float, top_right: float, bottom_right: float, bottom_left: float
+    top_left: tuple[float, float],
+    top_right: tuple[float, float],
+    bottom_right: tuple[float, float],
+    bottom_left: tuple[float, float],
 ) -> float:
     """Checks if a string is piercing a plaquette which is tetragon of points. If there a string does cross then its handedness
     is returned otherwise 0 is returned.
 
     Parameters
     ----------
-    top_left : Tuple[float, float]
+    top_left : tuple[float, float]
         the real and imaginary parts of the field value at the top left corner.
-    top_right : Tuple[float, float]
+    top_right : tuple[float, float]
         the real and imaginary parts of the field value at the top right corner.
-    bottom_right : Tuple[float, float]
+    bottom_right : tuple[float, float]
         the real and imaginary parts of the field value at the bottom right corner.
-    bottom_left : Tuple[float, float]
+    bottom_left : tuple[float, float]
         the real and imaginary parts of the field value at the bottom left corner.
 
     Returns

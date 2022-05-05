@@ -1,5 +1,5 @@
 # Standard modules
-from typing import NamedTuple, Tuple
+from typing import NamedTuple
 
 
 class PlotterConfig(NamedTuple):
@@ -13,14 +13,14 @@ class PlotterConfig(NamedTuple):
         the number of rows to plot.
     ncols : int
         the number of columns to plot.
-    figsize : Tuple[int, int]
+    figsize : tuple[float, float]
         the size of the figure to plot to in pixels.
     """
 
     title: str
     nrows: int
     ncols: int
-    figsize: Tuple[int, int]
+    figsize: tuple[float, float]
 
 
 class ImageConfig(NamedTuple):

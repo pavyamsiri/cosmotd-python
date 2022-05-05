@@ -1,10 +1,11 @@
 """This file contains the necessary functions to run a (uncharged) domain wall simulation."""
 
 # Standard modules
-from typing import Generator, Optional, Type, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 from cosmotd.utils import laplacian2D_iterative
@@ -18,12 +19,14 @@ from .fields import calculate_energy, evolve_field, evolve_velocity, evolve_acce
 from .plot import Plotter, PlotterConfig, LineConfig, ImageConfig
 
 
-def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
+def potential_dw(
+    field: npt.NDArray[np.float32], eta: float, lam: float
+) -> npt.NDArray[np.float32]:
     """Calculates the Z2 symmetry breaking potential acting on a field.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the field.
     eta : float
         the location of the symmetry broken minima.
@@ -32,7 +35,7 @@ def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
 
     Returns
     -------
-    potential : np.ndarray
+    potential : npt.NDArray[np.float32]
         the potential.
     """
     potential = lam / 4 * (field**2 - eta**2) ** 2
@@ -40,15 +43,15 @@ def potential_dw(field: np.ndarray, eta: float, lam: float) -> np.ndarray:
 
 
 def potential_derivative_dw(
-    field: np.ndarray,
+    field: npt.NDArray[np.float32],
     eta: float,
     lam: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the Z2 symmetry breaking potential with respect to phi.
 
     Parameters
     ----------
-    field : np.ndarray
+    field : npt.NDArray[np.float32]
         the field.
     eta : float
         the location of the symmetry broken minima.
@@ -57,7 +60,7 @@ def potential_derivative_dw(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Potential term
@@ -73,9 +76,9 @@ def plot_domain_wall_simulation(
     eta: float,
     era: float,
     w: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a domain wall simulation in two dimensions.
 
@@ -95,11 +98,11 @@ def plot_domain_wall_simulation(
         the cosmological era.
     w : float
         the width of the domain walls.
-    plot_backend : Type[Plotter]
+    plot_backend : type[Plotter]
         the plotting backend to use.
-    run_time : Optional[int]
+    run_time : int | None
         the number of timesteps simulated. If `None` the number of timesteps used will be the light crossing time.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -289,7 +292,7 @@ def run_domain_wall_simulation(
     era: float,
     lam: float,
     run_time: int,
-    seed: Optional[int],
+    seed: int | None,
 ) -> Generator[Field, None, None]:
     """Runs a domain wall simulation in two dimensions.
 
@@ -311,8 +314,13 @@ def run_domain_wall_simulation(
         the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi_field : Field
+        the real scalar field phi.
     """
     # Clock
     t = 1.0 * dt

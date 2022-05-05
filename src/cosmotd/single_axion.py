@@ -1,10 +1,11 @@
 """This file contains the necessary functions to run a single axion model simulation."""
 
 # Standard modules
-from typing import Optional, Type, Generator, Tuple
+from collections.abc import Generator
 
 # External modules
 import numpy as np
+from numpy import typing as npt
 from tqdm import tqdm
 
 from cosmotd.plot.settings import ScatterConfig
@@ -17,8 +18,8 @@ from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
 def potential_derivative_single_axion_real(
-    real_field: np.ndarray,
-    imaginary_field: np.ndarray,
+    real_field: npt.NDArray[np.float32],
+    imaginary_field: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: int,
@@ -26,14 +27,14 @@ def potential_derivative_single_axion_real(
     t: float,
     t0: float,
     growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the single axion potential with respect to the real part of the field.
 
     Parameters
     ----------
-    real_field : np.ndarray
+    real_field : npt.NDArray[np.float32]
         the real part of the axion field.
-    imaginary_field : np.ndarray
+    imaginary_field : npt.NDArray[np.float32]
         the imaginary part of the axion field.
     eta : float
         the location of the symmetry broken minima.
@@ -52,7 +53,7 @@ def potential_derivative_single_axion_real(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -73,8 +74,8 @@ def potential_derivative_single_axion_real(
 
 
 def potential_derivative_single_axion_imaginary(
-    real_field: np.ndarray,
-    imaginary_field: np.ndarray,
+    real_field: npt.NDArray[np.float32],
+    imaginary_field: npt.NDArray[np.float32],
     eta: float,
     lam: float,
     n: int,
@@ -82,14 +83,14 @@ def potential_derivative_single_axion_imaginary(
     t: float,
     t0: float,
     growth: float,
-) -> np.ndarray:
+) -> npt.NDArray[np.float32]:
     """Calculates the derivative of the single axion potential with respect to the imaginary part of the field.
 
     Parameters
     ----------
-    real_field : np.ndarray
+    real_field : npt.NDArray[np.float32]
         the real part of the axion field.
-    imaginary_field : np.ndarray
+    imaginary_field : npt.NDArray[np.float32]
         the imaginary part of the axion field.
     eta : float
         the location of the symmetry broken minima.
@@ -108,7 +109,7 @@ def potential_derivative_single_axion_imaginary(
 
     Returns
     -------
-    potential_derivative : np.ndarray
+    potential_derivative : npt.NDArray[np.float32]
         the derivative of the potential.
     """
     # Standard Z2 symmetry breaking potential
@@ -140,9 +141,9 @@ def plot_single_axion_simulation(
     K: float,
     t0: float,
     growth: float,
-    plot_backend: Type[Plotter],
-    run_time: Optional[int],
-    seed: Optional[int],
+    plot_backend: type[Plotter],
+    run_time: int | None,
+    seed: int | None,
 ):
     """Plots a single axion model simulation in two dimensions.
 
@@ -170,11 +171,11 @@ def plot_single_axion_simulation(
         the characteristic timescale of the axion potential's growth.
     growth : float
         the power law exponent of the strength growth.
-    plot_backend : Type[Plotter]
+    plot_backend : type[Plotter]
         the plotting backend to use.
-    run_time : Optional[int]
+    run_time : int | None
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
     """
     # Set run time of simulation to light crossing time if no specific time is given
@@ -264,8 +265,8 @@ def run_single_axion_simulation(
     t0: float,
     growth: float,
     run_time: int,
-    seed: Optional[int],
-) -> Generator[Tuple[Field, Field], None, None]:
+    seed: int | None,
+) -> Generator[tuple[Field, Field], None, None]:
     """Runs a single axion model simulation in two dimensions.
 
     Parameters
@@ -294,8 +295,15 @@ def run_single_axion_simulation(
         the power law exponent of the strength growth.
     run_time : int
         the number of timesteps simulated.
-    seed : Optional[int]
+    seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Yields
+    ------
+    phi_real_field : Field
+        the real component of the phi field.
+    phi_imaginary_field : Field
+        the imaginary component of the phi field.
     """
     # Clock
     t = 1.0 * dt

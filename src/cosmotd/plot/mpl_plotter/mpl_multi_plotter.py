@@ -2,12 +2,13 @@
 import glob
 import multiprocessing as mp
 import os
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 # External modules
 import ffmpeg
 import matplotlib as mpl
 import numpy as np
+from numpy import typing as npt
 
 # Internal modules
 from cosmotd.plot.plotter import DPI, PLOT_CACHE, VIDEO_CACHE
@@ -26,7 +27,7 @@ class DrawImageCommand(NamedTuple):
 
     Attributes
     ----------
-    data : np.ndarray
+    data : npt.NDArray[np.float32]
         the data to draw.
     axis_index : int
         the index of the primary axis to draw the image to.
@@ -36,7 +37,7 @@ class DrawImageCommand(NamedTuple):
         the parameters to use when drawing.
     """
 
-    data: np.ndarray
+    data: npt.NDArray[np.float32]
     axis_index: int
     image_index: int
     config: ImageConfig
@@ -47,9 +48,9 @@ class DrawPlotCommand(NamedTuple):
 
     Attributes
     ----------
-    xdata : np.ndarray
+    xdata : npt.NDArray[np.float32]
         the data along the x-axis.
-    ydata : np.ndarray
+    ydata : npt.NDArray[np.float32]
         the data along the y-axis.
     axis_index : int
         the index of the primary axis to draw the line to.
@@ -59,8 +60,8 @@ class DrawPlotCommand(NamedTuple):
         the parameters to use when drawing.
     """
 
-    xdata: np.ndarray
-    ydata: np.ndarray
+    xdata: npt.NDArray[np.float32]
+    ydata: npt.NDArray[np.float32]
     axis_index: int
     line_index: int
     config: LineConfig
@@ -71,9 +72,9 @@ class DrawScatterCommand(NamedTuple):
 
     Attributes
     ----------
-    xdata : np.ndarray
+    xdata : npt.NDArray[np.float32]
         the data along the x-axis.
-    ydata : np.ndarray
+    ydata : npt.NDArray[np.float32]
         the data along the y-axis.
     axis_index : int
         the index of the primary axis to draw the line to.
@@ -83,8 +84,8 @@ class DrawScatterCommand(NamedTuple):
         the parameters to use when drawing.
     """
 
-    xdata: np.ndarray
-    ydata: np.ndarray
+    xdata: npt.NDArray[np.float32]
+    ydata: npt.NDArray[np.float32]
     axis_index: int
     scatter_index: int
     config: ScatterConfig
@@ -143,22 +144,22 @@ class SetAxisLimitsCommand(NamedTuple):
 
     Attributes
     ----------
-    x_min : Optional[float]
+    x_min : float | None
         the minimum x value.
-    x_max : Optional[float]
+    x_max : float | None
         the maximum x value.
-    y_min : Optional[float]
+    y_min : float | None
         the minimum y value.
-    y_max : Optional[float]
+    y_max : float | None
         the maximum y value.
     axis_index : int
         the index of the primary axis to set the axes limits of.
     """
 
-    xmin: Optional[float]
-    xmax: Optional[float]
-    ymin: Optional[float]
-    ymax: Optional[float]
+    xmin: float | None
+    xmax: float | None
+    ymin: float | None
+    ymax: float | None
     axis_index: int
 
 
@@ -370,7 +371,7 @@ class MplMultiPlotter(Plotter):
 
     def draw_image(
         self,
-        data: np.ndarray,
+        data: npt.NDArray[np.float32],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -381,8 +382,8 @@ class MplMultiPlotter(Plotter):
 
     def draw_plot(
         self,
-        x: np.ndarray,
-        y: np.ndarray,
+        x: npt.NDArray[np.float32],
+        y: npt.NDArray[np.float32],
         axis_index: int,
         line_index: int,
         line_config: LineConfig,
@@ -393,8 +394,8 @@ class MplMultiPlotter(Plotter):
 
     def draw_scatter(
         self,
-        xdata: np.ndarray,
-        ydata: np.ndarray,
+        xdata: npt.NDArray[np.float32],
+        ydata: npt.NDArray[np.float32],
         axis_index: int,
         scatter_index: int,
         scatter_config: ScatterConfig,
@@ -416,10 +417,10 @@ class MplMultiPlotter(Plotter):
 
     def set_axes_limits(
         self,
-        x_min: Optional[float],
-        x_max: Optional[float],
-        y_min: Optional[float],
-        y_max: Optional[float],
+        x_min: float | None,
+        x_max: float | None,
+        y_min: float | None,
+        y_max: float | None,
         axis_index: int,
     ):
         self._commands.append(
