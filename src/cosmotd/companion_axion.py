@@ -544,15 +544,15 @@ def plot_companion_axion_simulation(
         # phi strings
         plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
         plot_api.draw_scatter(
-            positive_phi_strings[1],
-            positive_phi_strings[0],
+            dx * positive_phi_strings[1],
+            dx * positive_phi_strings[0],
             1,
             0,
             positive_string_settings,
         )
         plot_api.draw_scatter(
-            negative_phi_strings[1],
-            negative_phi_strings[0],
+            dx * negative_phi_strings[1],
+            dx * negative_phi_strings[0],
             1,
             1,
             negative_string_settings,
@@ -566,15 +566,15 @@ def plot_companion_axion_simulation(
         # psi strings
         plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
         plot_api.draw_scatter(
-            positive_psi_strings[0],
-            positive_psi_strings[1],
+            dx * positive_psi_strings[1],
+            dx * positive_psi_strings[0],
             3,
             0,
             positive_string_settings,
         )
         plot_api.draw_scatter(
-            negative_psi_strings[0],
-            negative_psi_strings[1],
+            dx * negative_psi_strings[1],
+            dx * negative_psi_strings[0],
             3,
             1,
             negative_string_settings,
