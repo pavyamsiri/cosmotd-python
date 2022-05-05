@@ -107,6 +107,7 @@ def plot_cosmic_string_simulation(
     negative_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
+    image_extents = (0, dx * N, 0, dx * N)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -128,16 +129,24 @@ def plot_cosmic_string_simulation(
         # Plot
         plot_api.reset()
         # Phase
-        plot_api.draw_image(phase, 0, 0, draw_settings)
+        plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\theta$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Strings
-        plot_api.draw_image(phase, 1, 0, draw_settings)
+        plot_api.draw_image(phase, image_extents, 1, 0, draw_settings)
         plot_api.draw_scatter(
-            positive_strings[0], positive_strings[1], 1, 0, positive_string_settings
+            dx * positive_strings[1],
+            dx * positive_strings[0],
+            1,
+            0,
+            positive_string_settings,
         )
         plot_api.draw_scatter(
-            negative_strings[0], negative_strings[1], 1, 1, negative_string_settings
+            dx * negative_strings[1],
+            dx * negative_strings[0],
+            1,
+            1,
+            negative_string_settings,
         )
         plot_api.set_title(r"Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)

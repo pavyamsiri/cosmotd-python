@@ -29,6 +29,8 @@ class DrawImageCommand(NamedTuple):
     ----------
     data : npt.NDArray[np.float32]
         the data to draw.
+    extents : tuple[float, float, float, float]
+        the image extents.
     axis_index : int
         the index of the primary axis to draw the image to.
     image_index : int
@@ -38,6 +40,7 @@ class DrawImageCommand(NamedTuple):
     """
 
     data: npt.NDArray[np.float32]
+    extents: tuple[float, float, float, float]
     axis_index: int
     image_index: int
     config: ImageConfig
@@ -163,6 +166,24 @@ class SetAxisLimitsCommand(NamedTuple):
     axis_index: int
 
 
+class SetAutoscaleCommand(NamedTuple):
+    """A structure that contains the necessary information to turn on/off autoscaling.
+
+    Parameters
+    ----------
+    enable : bool
+        if `True` will turn on autoscale and if `False` will turn off autoscale.
+    axis : str
+        the axis to operate on. Allowed choices are "both", "x" and "y".
+    axis_index : int
+        the index of the set of axes to operate on.
+    """
+
+    enable: bool
+    axis: str
+    axis_index: int
+
+
 def plotting_job(count: int, settings: PlotterConfig, commands: list):
     """This function creates a plot according to a list of commands and then saves the plot as a png.
 
@@ -222,6 +243,8 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                     cmap=image_config.cmap,
                     vmin=image_config.vmin,
                     vmax=image_config.vmax,
+                    origin="lower",
+                    extent=command.extents,
                 )
                 # Create colorbar
                 fig.colorbar(
@@ -287,6 +310,9 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         elif isinstance(command, SetAxisLimitsCommand):
             axes[command.axis_index].set_xlim(left=command.xmin, right=command.xmax)
             axes[command.axis_index].set_ylim(bottom=command.ymin, top=command.ymax)
+        # Set autoscale
+        elif isinstance(command, SetAutoscaleCommand):
+            axes[command.axis_index].autoscale(enable=command.enable, axis=command.axis)
 
     # Save as png
     plt.tight_layout()
@@ -372,12 +398,15 @@ class MplMultiPlotter(Plotter):
     def draw_image(
         self,
         data: npt.NDArray[np.float32],
+        extents: tuple[float, float, float, float],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
     ):
         self._commands.append(
-            DrawImageCommand(data.copy(), axis_index, image_index, image_config)
+            DrawImageCommand(
+                data.copy(), extents, axis_index, image_index, image_config
+            )
         )
 
     def draw_plot(
@@ -426,3 +455,6 @@ class MplMultiPlotter(Plotter):
         self._commands.append(
             SetAxisLimitsCommand(x_min, x_max, y_min, y_max, axis_index)
         )
+
+    def set_autoscale(self, enable: bool, axis: str, axis_index: int):
+        self._commands.append(SetAutoscaleCommand(enable, axis, axis_index))

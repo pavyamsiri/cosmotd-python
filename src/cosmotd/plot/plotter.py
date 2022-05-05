@@ -1,6 +1,3 @@
-# Standard modules
-from abc import ABC, abstractmethod
-
 # External modules
 import numpy as np
 from numpy import typing as npt
@@ -15,10 +12,10 @@ PLOT_CACHE: str = "data/plot_cache"
 VIDEO_CACHE: str = "data/video_cache"
 
 
-class Plotter(ABC):
-    """An abstract class that serves as an interface for different plotting backends."""
+class Plotter:
+    """An interface class that serves as an interface for different plotting backends. It can be used on its own if plotting is
+    to be turned off."""
 
-    @abstractmethod
     def __init__(self, settings: PlotterConfig):
         """Constructs a plotter configured by the given settings.
 
@@ -29,27 +26,24 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def reset(self):
         """Clear the plotting canvas."""
         pass
 
-    @abstractmethod
     def flush(self):
         """Draws all elements."""
         pass
 
-    @abstractmethod
     def close(self):
         """Closes the plotter and any resources it may be using."""
         pass
 
     # Plotting functions
 
-    @abstractmethod
     def draw_image(
         self,
         data: npt.NDArray[np.float32],
+        extents: tuple[float, float, float, float],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -60,6 +54,8 @@ class Plotter(ABC):
         ----------
         data : npt.NDArray[np.float32]
             the 2D array to draw.
+        extents : tuple[float, float, float, float]
+            the image extents.
         axis_index : int
             the index of the primary axis to draw the image to.
         image_index : int
@@ -69,7 +65,6 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def draw_plot(
         self,
         x: npt.NDArray[np.float32],
@@ -95,7 +90,6 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def draw_scatter(
         self,
         x: npt.NDArray[np.float32],
@@ -121,9 +115,8 @@ class Plotter(ABC):
         """
         pass
 
-    # Axes-Specific Functions
+    # Axes Setter Functions
 
-    @abstractmethod
     def set_title(self, title: str, axis_index: int):
         """Sets the title of a plot.
 
@@ -136,7 +129,6 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def set_legend(self, legend: list[str], axis_index: int):
         """Sets the legend of a plot.
 
@@ -149,7 +141,6 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
         """Sets the labels of the x and y axes.
 
@@ -164,7 +155,6 @@ class Plotter(ABC):
         """
         pass
 
-    @abstractmethod
     def set_axes_limits(
         self,
         x_min: float | None,
@@ -190,66 +180,18 @@ class Plotter(ABC):
         """
         pass
 
+    # Miscellaneous Axes Functions
 
-class MockPlotter(Plotter):
-    """An abstract class that serves as an interface for different plotting backends."""
+    def set_autoscale(self, enable: bool, axis: str, axis_index: int):
+        """Turns on or off autoscaling for an axis.
 
-    def __init__(self, settings: PlotterConfig):
-        pass
-
-    def reset(self):
-        pass
-
-    def flush(self):
-        pass
-
-    def close(self):
-        pass
-
-    def draw_image(
-        self,
-        data: npt.NDArray[np.float32],
-        axis_index: int,
-        image_index: int,
-        image_config: ImageConfig,
-    ):
-        pass
-
-    def draw_plot(
-        self,
-        x: npt.NDArray[np.float32],
-        y: npt.NDArray[np.float32],
-        axis_index: int,
-        line_index: int,
-        line_config: LineConfig,
-    ):
-        pass
-
-    def draw_scatter(
-        self,
-        x: npt.NDArray[np.float32],
-        y: npt.NDArray[np.float32],
-        axis_index: int,
-        scatter_index: int,
-        scatter_config: ScatterConfig,
-    ):
-        pass
-
-    def set_title(self, title: str, axis_index: int):
-        pass
-
-    def set_legend(self, legend: list[str], axis_index: int):
-        pass
-
-    def set_axes_labels(self, xlabel: str, ylabel: str, axis_index: int):
-        pass
-
-    def set_axes_limits(
-        self,
-        x_min: float | None,
-        x_max: float | None,
-        y_min: float | None,
-        y_max: float | None,
-        axis_index: int,
-    ):
+        Parameters
+        ----------
+        enable : bool
+            if `True` will turn on autoscale and if `False` will turn off autoscale.
+        axis : str
+            the axis to operate on. Allowed choices are "both", "x" and "y".
+        axis_index : int
+            the index of the set of axes to operate on.
+        """
         pass

@@ -6,6 +6,7 @@ from collections.abc import Generator
 # External modules
 import numpy as np
 from numpy import typing as npt
+from pygments import highlight
 from tqdm import tqdm
 
 from cosmotd.plot.settings import ScatterConfig
@@ -207,12 +208,14 @@ def plot_single_axion_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="viridis")
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
     )
     negative_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
+    image_extents = (0, N * dx, 0, N * dx)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -232,22 +235,37 @@ def plot_single_axion_simulation(
         positive_strings = np.nonzero(strings > 0)
         negative_strings = np.nonzero(strings < 0)
 
+        # if idx > 690:
+        #     print(f"Positive x: {positive_strings[0]}")
+        #     print(f"Positive y: {positive_strings[1]}")
+        #     print(f"Negative x: {negative_strings[0]}")
+        #     print(f"Negative y: {negative_strings[1]}")
+
         # Plot
         plot_api.reset()
         # Phase
-        plot_api.draw_image(phase, 0, 0, draw_settings)
+        plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\theta$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Highlighting strings
-        plot_api.draw_image(phase, 1, 0, draw_settings)
+        plot_api.draw_image(strings, image_extents, 1, 0, highlight_settings)
         plot_api.draw_scatter(
-            positive_strings[0], positive_strings[1], 1, 0, positive_string_settings
+            dx * positive_strings[1],
+            dx * positive_strings[0],
+            1,
+            0,
+            positive_string_settings,
         )
         plot_api.draw_scatter(
-            negative_strings[0], negative_strings[1], 1, 1, negative_string_settings
+            dx * negative_strings[1],
+            dx * negative_strings[0],
+            1,
+            1,
+            negative_string_settings,
         )
         plot_api.set_title(r"Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        plot_api.set_axes_limits(0, dx * N, 0, dx * N, 1)
         plot_api.flush()
     plot_api.close()
 

@@ -130,6 +130,7 @@ def plot_domain_wall_simulation(
     draw_settings = ImageConfig(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
     highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
     line_settings = LineConfig(color="#1f77b4", linestyle="-")
+    image_extents = (0, dx * N, 0, dx * N)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -208,11 +209,13 @@ def plot_domain_wall_simulation(
         # Plot
         plot_api.reset()
         # Real field
-        plot_api.draw_image(phi, 0, 0, draw_settings)
+        plot_api.draw_image(phi, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\phi$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Highlight walls
-        plot_api.draw_image(domain_walls_masked, 1, 0, highlight_settings)
+        plot_api.draw_image(
+            domain_walls_masked, image_extents, 1, 0, highlight_settings
+        )
         plot_api.set_title(r"Domain walls", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         # Plot energy

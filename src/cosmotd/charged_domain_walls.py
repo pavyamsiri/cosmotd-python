@@ -164,7 +164,7 @@ def plot_charged_domain_wall_simulation(
             title="Charged domain wall simulation",
             nrows=1,
             ncols=2,
-            figsize=(1280, 720),
+            figsize=(640, 480),
         )
     )
     phi_draw_settings = ImageConfig(
@@ -173,6 +173,7 @@ def plot_charged_domain_wall_simulation(
     sigma_draw_settings = ImageConfig(
         vmin=-1.1 * eta_sigma, vmax=1.1 * eta_sigma, cmap="viridis"
     )
+    image_extents = (0, dx * N, 0, dx * N)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -186,11 +187,11 @@ def plot_charged_domain_wall_simulation(
         # Plot
         plot_api.reset()
         # Real field
-        plot_api.draw_image(phi, 0, 0, phi_draw_settings)
+        plot_api.draw_image(phi, image_extents, 0, 0, phi_draw_settings)
         plot_api.set_title(r"$\phi$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Complex field
-        plot_api.draw_image(sigma_real, 1, 0, sigma_draw_settings)
+        plot_api.draw_image(sigma_real, image_extents, 1, 0, sigma_draw_settings)
         plot_api.set_title(r"$\Re{\sigma}$", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.flush()

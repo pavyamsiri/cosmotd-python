@@ -507,6 +507,7 @@ def plot_companion_axion_simulation(
     negative_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
+    image_extents = (0, dx * N, 0, dx * N)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
@@ -537,21 +538,21 @@ def plot_companion_axion_simulation(
         # Plot
         plot_api.reset()
         # phi phase
-        plot_api.draw_image(phi_phase, 0, 0, draw_settings)
+        plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\arg{\phi}$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # phi strings
-        plot_api.draw_image(phi_phase, 1, 0, draw_settings)
+        plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
         plot_api.draw_scatter(
-            positive_phi_strings[0],
             positive_phi_strings[1],
+            positive_phi_strings[0],
             1,
             0,
             positive_string_settings,
         )
         plot_api.draw_scatter(
-            negative_phi_strings[0],
             negative_phi_strings[1],
+            negative_phi_strings[0],
             1,
             1,
             negative_string_settings,
@@ -559,11 +560,11 @@ def plot_companion_axion_simulation(
         plot_api.set_title(r"$\phi$ Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         # psi phase
-        plot_api.draw_image(psi_phase, 2, 0, draw_settings)
+        plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
         plot_api.set_title(r"$\arg{\psi}$", 2)
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
         # psi strings
-        plot_api.draw_image(psi_phase, 3, 0, draw_settings)
+        plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
         plot_api.draw_scatter(
             positive_psi_strings[0],
             positive_psi_strings[1],

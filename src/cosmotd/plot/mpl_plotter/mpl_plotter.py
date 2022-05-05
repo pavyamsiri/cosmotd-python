@@ -56,6 +56,7 @@ class MplPlotter(Plotter):
     def draw_image(
         self,
         data: npt.NDArray[np.float32],
+        extents: tuple[float, float, float, float],
         axis_index: int,
         image_index: int,
         image_config: ImageConfig,
@@ -67,6 +68,8 @@ class MplPlotter(Plotter):
                 cmap=image_config.cmap,
                 vmin=image_config.vmin,
                 vmax=image_config.vmax,
+                origin="lower",
+                extent=extents
             )
             # NOTE: For some reason calling colorbar just once causes the loop to slow. It might have to do with colorbar
             # calling update when the image gets changed despite it being static. Could create a function that creates a colorbar
@@ -93,7 +96,10 @@ class MplPlotter(Plotter):
         # Create a new line if it doesn't already exist
         if line_index not in self._lines[axis_index]:
             self._lines[axis_index][line_index] = self._axes[axis_index].plot(
-                xdata, ydata, color=line_config.color, linestyle=line_config.linestyle
+                xdata,
+                ydata,
+                color=line_config.color,
+                linestyle=line_config.linestyle,
             )[0]
         # Otherwise set the data of the line to the new data
         else:
@@ -147,3 +153,6 @@ class MplPlotter(Plotter):
         # Set axes limits
         self._axes[axis_index].set_xlim(x_min, x_max)
         self._axes[axis_index].set_ylim(y_min, y_max)
+
+    def set_autoscale(self, enable: bool, axis: str, axis_index: int):
+        self._axes[axis_index].autoscale(enable, axis)
