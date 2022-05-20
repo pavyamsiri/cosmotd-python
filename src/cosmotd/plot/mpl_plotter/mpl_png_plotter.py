@@ -21,7 +21,7 @@ class MplPngPlotter(MplPlotter):
     Plots are saved as a png upon flush in a folder called `plot_cache`.
     """
 
-    def __init__(self, settings: PlotterConfig):
+    def __init__(self, settings: PlotterConfig, progress_callback):
         # Set backend to a rasterizer to optimise for pngs.
         mpl.use("Agg")
 
@@ -35,7 +35,7 @@ class MplPngPlotter(MplPlotter):
         self._count = 0
 
         # Initialise the actual plotter
-        super().__init__(settings)
+        super().__init__(settings, progress_callback)
 
     def flush(self):
         plt.tight_layout()
@@ -52,3 +52,5 @@ class MplPngPlotter(MplPlotter):
         )
         # Increment frame count
         self._count += 1
+        # Increment progress
+        self._progress_callback(1)

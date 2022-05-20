@@ -2,6 +2,8 @@
 
 # Internal modules
 from dataclasses import dataclass
+import os
+import struct
 
 # External modules
 import numpy as np
@@ -9,6 +11,13 @@ from numpy import typing as npt
 
 # Internal modules
 from .utils import laplacian2D_convolve, laplacian2D_iterative, laplacian2D_matrix
+
+
+SUB_TO_ROOT = "/../"
+DATA_CACHE = "data/data_cache"
+
+
+"""Data"""
 
 
 @dataclass
@@ -30,14 +39,123 @@ class Field:
     acceleration: npt.NDArray[np.float32]
 
 
+"""Exceptions"""
+
+
+class MissingFieldsException(Exception):
+    """Raised when there are an insufficient number of fields in a given file."""
+
+    pass
+
+
+"""Data Saving"""
+
+
+def save_fields(fields: list[Field], file_name: str):
+    """Saves a list of fields into a custom binary file.
+
+    Parameters
+    ----------
+    fields : list[Field]
+        the fields to save.
+    file_name : str
+        the name of the file to save to. Note that this file will always be found in a specific data cache folder. This means
+        the file name should only consist of a name and extension.
+    """
+    # Get the absolute path of the file
+    src_folder = os.path.dirname(os.path.realpath(__file__))
+    file_name = f"{src_folder}{SUB_TO_ROOT}{DATA_CACHE}/{file_name}"
+    # Field size
+    with open(file_name, "wb") as save_file:
+        # The number of fields in this file
+        save_file.write(struct.pack("<I", len(fields)))
+        for field in fields:
+            # Header of a single field
+            M = field.value.shape[0]
+            N = field.value.shape[1]
+            save_file.write(struct.pack("<I", M))
+            save_file.write(struct.pack("<I", N))
+
+            # Field values
+            for i in range(M):
+                for j in range(N):
+                    value = field.value[i, j]
+                    velocity = field.velocity[i, j]
+                    acceleration = field.acceleration[i, j]
+                    # Write field value, velocity and acceleration
+                    save_file.write(struct.pack("<f", value))
+                    save_file.write(struct.pack("<f", velocity))
+                    save_file.write(struct.pack("<f", acceleration))
+
+
+def load_fields(file_name: str) -> list[Field]:
+    """Loads a list of fields from a custom binary file.
+
+    Parameters
+    ----------
+    file_name : str
+        the name of the file to load from. Note that this file will always be found in a specific data cache folder. This means
+        the file name should only consist of a name and extension.
+
+    Returns
+    -------
+    field : list[Field]
+        the loaded fields.
+    """
+    # Get the absolute path of the file
+    src_folder = os.path.dirname(os.path.realpath(__file__))
+    file_name = f"{src_folder}{SUB_TO_ROOT}{DATA_CACHE}/{file_name}"
+    with open(file_name, "rb") as save_file:
+        # The number of fields
+        num_fields = struct.unpack("<I", save_file.read(4))[0]
+        fields = num_fields * [None]
+
+        for field_idx in range(num_fields):
+            # Header
+            M = struct.unpack("<I", save_file.read(4))[0]
+            N = struct.unpack("<I", save_file.read(4))[0]
+
+            # Initialise field arrays
+            value = np.zeros(shape=(M, N))
+            velocity = np.zeros(shape=(M, N))
+            acceleration = np.zeros(shape=(M, N))
+
+            # Read field data from rest of file
+            i = 0
+            j = 0
+            while True:
+                current_value = struct.unpack("<f", save_file.read(4))[0]
+                current_velocity = struct.unpack("<f", save_file.read(4))[0]
+                current_acceleration = struct.unpack("<f", save_file.read(4))[0]
+                value[i, j] = current_value
+                velocity[i, j] = current_velocity
+                acceleration[i, j] = current_acceleration
+                # Increment to next column
+                j += 1
+                # At end of row
+                if j == N:
+                    # Increment to next row
+                    i += 1
+                    j = 0
+                # End of array
+                if i == M:
+                    break
+
+            # Create field
+            fields[field_idx] = Field(value, velocity, acceleration)
+        return fields
+
+
+"""Field Evolution"""
+
+
 def evolve_field(
     field: npt.NDArray[np.float32],
     velocity: npt.NDArray[np.float32],
     acceleration: npt.NDArray[np.float32],
     dt: float,
 ) -> npt.NDArray[np.float32]:
-    """
-    Evolves the field forward one timestep using a second order Taylor expansion.
+    """Evolves the field forward one timestep using a second order Taylor expansion.
 
     Parameters
     ----------
@@ -65,8 +183,7 @@ def evolve_velocity(
     next_acceleration: npt.NDArray[np.float32],
     dt: float,
 ) -> npt.NDArray[np.float32]:
-    """
-    Evolves the velocity of the field using a second order Taylor expansion.
+    """Evolves the velocity of the field using a second order Taylor expansion.
 
     Parameters
     ----------
@@ -97,8 +214,7 @@ def evolve_acceleration(
     dx: float,
     t: float,
 ) -> npt.NDArray[np.float32]:
-    """
-    Evolves the acceleration of a real scalar field.
+    """Evolves the acceleration of a real scalar field.
 
     Parameters
     ----------
@@ -129,6 +245,9 @@ def evolve_acceleration(
     # Potential term
     evolved_acceleration -= potential_derivative
     return evolved_acceleration
+
+
+"""Observables"""
 
 
 def calculate_energy(

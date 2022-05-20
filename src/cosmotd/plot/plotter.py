@@ -1,4 +1,5 @@
 # External modules
+from typing import Callable, ParamSpec
 import numpy as np
 from numpy import typing as npt
 
@@ -16,15 +17,18 @@ class Plotter:
     """An interface class that serves as an interface for different plotting backends. It can be used on its own if plotting is
     to be turned off."""
 
-    def __init__(self, settings: PlotterConfig):
+    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
         """Constructs a plotter configured by the given settings.
 
         Parameters
         ----------
         settings : PlotterConfig
             settings used to configure plotting.
+        progress_callback : Callable[[int], None]
+            the callback used to update progress bars.
         """
-        pass
+        # Store progress callback
+        self._progress_callback = progress_callback
 
     def reset(self):
         """Clear the plotting canvas."""
@@ -32,7 +36,8 @@ class Plotter:
 
     def flush(self):
         """Draws all elements."""
-        pass
+        # Increase progress
+        self._progress_callback(1)
 
     def close(self):
         """Closes the plotter and any resources it may be using."""

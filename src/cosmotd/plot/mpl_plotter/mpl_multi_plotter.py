@@ -2,7 +2,7 @@
 import glob
 import multiprocessing as mp
 import os
-from typing import NamedTuple
+from typing import Callable, NamedTuple
 
 # External modules
 import ffmpeg
@@ -245,6 +245,7 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                     vmax=image_config.vmax,
                     origin="lower",
                     extent=command.extents,
+                    rasterized=True,
                 )
                 # Create colorbar
                 fig.colorbar(
@@ -338,7 +339,10 @@ class MplMultiPlotter(Plotter):
     This plotter uses a process pool to create the plots in separate processes concurrently to speed up iteration.
     """
 
-    def __init__(self, settings: PlotterConfig):
+    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
+        # Store progress_callback
+        self._progress_callback = progress_callback
+
         # Set backend to a rasterizer to optimise for pngs.
         mpl.use("Agg")
 
@@ -347,6 +351,9 @@ class MplMultiPlotter(Plotter):
         file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_*.png"
         for plot_file in glob.glob(file_name):
             os.remove(plot_file)
+
+        # Store file name to save as
+        self._file_name = settings.file_name
 
         # Initialise frame count
         self._count = 0
@@ -369,7 +376,9 @@ class MplMultiPlotter(Plotter):
                 self._settings,
                 self._commands,
             ),
+            callback=lambda x: self._progress_callback(1),
         )
+        # plotting_job(self._count, self._settings, self._commands)
         # Reset list
         self._commands = []
         # Increment count
@@ -383,7 +392,7 @@ class MplMultiPlotter(Plotter):
         # Construct file names
         src_folder = os.path.dirname(os.path.realpath(__file__))
         input_file_template = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_%d.png"
-        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/simulation.mp4"
+        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/{self._file_name}.mp4"
         (
             ffmpeg.input(
                 input_file_template,

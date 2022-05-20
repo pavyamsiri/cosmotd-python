@@ -8,12 +8,13 @@ import numpy as np
 from numpy import typing as npt
 from pygments import highlight
 from tqdm import tqdm
+from cosmotd.domain_wall_algorithms import find_domain_walls_with_width
 
 from cosmotd.plot.settings import ScatterConfig
 
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
-from .fields import Field
+from .fields import Field, MissingFieldsException, load_fields, save_fields
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
@@ -131,6 +132,7 @@ def potential_derivative_single_axion_imaginary(
 
 
 def plot_single_axion_simulation(
+    M: int,
     N: int,
     dx: float,
     dt: float,
@@ -144,14 +146,17 @@ def plot_single_axion_simulation(
     growth: float,
     plot_backend: type[Plotter],
     run_time: int | None,
+    file_name: str | None,
     seed: int | None,
 ):
     """Plots a single axion model simulation in two dimensions.
 
     Parameters
     ----------
+    M : int
+        the number of rows in the field to simulate.
     N : int
-        the size of the field to simulate.
+        the number of columns in the field to simulate.
     dx : float
         the spacing between grid points.
     dt : float
@@ -176,16 +181,92 @@ def plot_single_axion_simulation(
         the plotting backend to use.
     run_time : int | None
         the number of timesteps simulated.
+    file_name : str | None
+        the name of the file to load field data from.
     seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Raises
+    ------
+    MissingFieldsException
+        If the given data file is missing fields that are needed to run the simulation.
     """
+
+    # Load from file if given
+    if file_name is not None:
+        loaded_fields = load_fields(file_name)
+        if len(loaded_fields) > 2:
+            print(
+                "WARNING: The number of fields in the given data file is greater than required!"
+            )
+        elif len(loaded_fields) < 2:
+            print(
+                "ERROR: The number of fields in the given data file is less than required!"
+            )
+            raise MissingFieldsException("Requires at least 2 field.")
+        phi_real_field = loaded_fields[0]
+        phi_imaginary_field = loaded_fields[1]
+        if M != phi_real_field.value.shape[0] or N != phi_real_field.value.shape[1]:
+            print(
+                "WARNING: The given box size does not match the box size of the field loaded from the file!"
+            )
+        M = phi_real_field.value.shape[0]
+        N = phi_real_field.value.shape[1]
+        # Otherwise generate from RNG
+    else:
+        # Seed the RNG
+        np.random.seed(seed)
+
+        # Initialise real field
+        phi_real = 0.1 * np.random.normal(size=(M, N))
+        phidot_real = np.zeros(shape=(M, N))
+
+        # Initialise imaginary field
+        phi_imaginary = 0.1 * np.random.normal(size=(M, N))
+        phidot_imaginary = np.zeros(shape=(M, N))
+
+        # Initialise acceleration
+        phidotdot_real = evolve_acceleration(
+            phi_real,
+            phidot_real,
+            potential_derivative_single_axion_real(
+                phi_real, phi_imaginary, eta, lam, n, K, dt, t0, growth
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary,
+            phidot_imaginary,
+            potential_derivative_single_axion_imaginary(
+                phi_imaginary, phi_real, eta, lam, n, K, dt, t0, growth
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Package fields
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_imaginary_field = Field(
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+        )
+        file_name = f"single_axion_M{M}_N{N}_np{seed}.ctdd"
+        save_fields([phi_real_field, phi_imaginary_field], file_name)
+
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
-        run_time = int(0.5 * N * dx / dt)
+        run_time = int(0.5 * min(M, N) * dx / dt)
+
+    w = np.sqrt(2 / lam) * np.pi
 
     # Initialise simulation
     simulation = run_single_axion_simulation(
-        N,
+        phi_real_field,
+        phi_imaginary_field,
         dx,
         dt,
         alpha,
@@ -197,32 +278,36 @@ def plot_single_axion_simulation(
         t0,
         growth,
         run_time,
-        seed,
     )
+    
+    # Number of iterations in the simulation (including initial condition)
+    simulation_end = run_time + 1
+
+    pbar = tqdm(total=simulation_end)
 
     # Set up plotting
     plot_api = plot_backend(
         PlotterConfig(
-            title="Single Axion simulation", nrows=1, ncols=2, figsize=(640, 480)
-        )
+            title="Single Axion simulation",
+            file_name="single_axion",
+            nrows=1,
+            ncols=2,
+            figsize=(640, 480),
+        ),
+        lambda x: pbar.update(x),
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="viridis")
+    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
     )
     negative_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
-    image_extents = (0, N * dx, 0, N * dx)
+    image_extents = (0, M * dx, 0, N * dx)
 
-    # Number of iterations in the simulation (including initial condition)
-    simulation_end = run_time + 1
-
-    for idx, (phi_real_field, phi_imaginary_field) in tqdm(
-        enumerate(simulation), total=simulation_end
-    ):
+    for idx, (phi_real_field, phi_imaginary_field) in enumerate(simulation):
         # Unpack
         phi_real = phi_real_field.value
         phi_imaginary = phi_imaginary_field.value
@@ -234,12 +319,9 @@ def plot_single_axion_simulation(
         # Get positions of strings to plot in scatter
         positive_strings = np.nonzero(strings > 0)
         negative_strings = np.nonzero(strings < 0)
-
-        # if idx > 690:
-        #     print(f"Positive x: {positive_strings[0]}")
-        #     print(f"Positive y: {positive_strings[1]}")
-        #     print(f"Negative x: {negative_strings[0]}")
-        #     print(f"Negative y: {negative_strings[1]}")
+        # Identify domain walls
+        domain_walls = find_domain_walls_with_width(phase, w)
+        domain_walls_masked = np.ma.masked_values(domain_walls, 0)
 
         # Plot
         plot_api.reset()
@@ -248,7 +330,7 @@ def plot_single_axion_simulation(
         plot_api.set_title(r"$\theta$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Highlighting strings
-        plot_api.draw_image(strings, image_extents, 1, 0, highlight_settings)
+        plot_api.draw_image(phase, image_extents, 1, 0, draw_settings)
         plot_api.draw_scatter(
             dx * positive_strings[1],
             dx * positive_strings[0],
@@ -266,12 +348,21 @@ def plot_single_axion_simulation(
         plot_api.set_title(r"Strings", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         plot_api.set_axes_limits(0, dx * N, 0, dx * N, 1)
+        # # Walls
+        # plot_api.draw_image(
+        #     domain_walls_masked, image_extents, 2, 0, highlight_settings
+        # )
+        # plot_api.set_title("Domain walls", 2)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        # plot_api.set_axes_limits(0, dx * N, 0, dx * N, 2)
         plot_api.flush()
     plot_api.close()
+    pbar.close()
 
 
 def run_single_axion_simulation(
-    N: int,
+    phi_real_field: Field,
+    phi_imaginary_field: Field,
     dx: float,
     dt: float,
     alpha: float,
@@ -283,14 +374,15 @@ def run_single_axion_simulation(
     t0: float,
     growth: float,
     run_time: int,
-    seed: int | None,
 ) -> Generator[tuple[Field, Field], None, None]:
     """Runs a single axion model simulation in two dimensions.
 
     Parameters
     ----------
-    N : int
-        the size of the field to simulate.
+    phi_real_field : Field
+        the real component of the phi field.
+    phi_imaginary_field : Field
+        the imaginary component of the phi field.
     dx : float
         the spacing between grid points.
     dt : float
@@ -313,8 +405,6 @@ def run_single_axion_simulation(
         the power law exponent of the strength growth.
     run_time : int
         the number of timesteps simulated.
-    seed : int | None
-        the seed used in generation of the initial state of the field.
 
     Yields
     ------
@@ -325,45 +415,6 @@ def run_single_axion_simulation(
     """
     # Clock
     t = 1.0 * dt
-
-    # Seed the RNG
-    np.random.seed(seed)
-
-    # Initialise real field
-    phi_real = 0.1 * np.random.normal(size=(N, N))
-    phidot_real = np.zeros(shape=(N, N))
-
-    # Initialise imaginary field
-    phi_imaginary = 0.1 * np.random.normal(size=(N, N))
-    phidot_imaginary = np.zeros(shape=(N, N))
-
-    # Initialise acceleration
-    phidotdot_real = evolve_acceleration(
-        phi_real,
-        phidot_real,
-        potential_derivative_single_axion_real(
-            phi_real, phi_imaginary, eta, lam, n, K, t, t0, growth
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    phidotdot_imaginary = evolve_acceleration(
-        phi_imaginary,
-        phidot_imaginary,
-        potential_derivative_single_axion_imaginary(
-            phi_imaginary, phi_real, eta, lam, n, K, t, t0, growth
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-
-    # Package fields
-    phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
-    phi_imaginary_field = Field(phi_imaginary, phidot_imaginary, phidotdot_imaginary)
 
     # Yield the initial condition
     yield phi_real_field, phi_imaginary_field

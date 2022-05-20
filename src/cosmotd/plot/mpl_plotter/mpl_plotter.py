@@ -1,3 +1,6 @@
+# Standard modules
+from typing import Callable
+
 # External modules
 from matplotlib import pyplot as plt
 import numpy as np
@@ -11,7 +14,12 @@ from cosmotd.plot.settings import PlotterConfig, LineConfig, ImageConfig, Scatte
 class MplPlotter(Plotter):
     """This plotter uses `matplotlib` as its plotting backend."""
 
-    def __init__(self, settings: PlotterConfig):
+    def __init__(
+        self, settings: PlotterConfig, progress_callback: Callable[[int], None]
+    ):
+        # Store progress_callback
+        self._progress_callback = progress_callback
+
         # Create figure
         dpi = DPI
         figsize = (
@@ -20,6 +28,8 @@ class MplPlotter(Plotter):
         )
         self._fig = plt.figure(figsize=figsize, dpi=dpi)
         self._fig.suptitle(settings.title)
+        # File name
+        self._file_name = settings.file_name
 
         # Make sure that the number of plots and given settings is equal
         num_plots = settings.nrows * settings.ncols
@@ -46,6 +56,8 @@ class MplPlotter(Plotter):
     def flush(self):
         plt.tight_layout()
         self._fig.canvas.draw()
+        # Increment progress
+        self._progress_callback(1)
 
     def close(self):
         plt.close(self._fig)
@@ -69,7 +81,8 @@ class MplPlotter(Plotter):
                 vmin=image_config.vmin,
                 vmax=image_config.vmax,
                 origin="lower",
-                extent=extents
+                extent=extents,
+                rasterized=True,
             )
             # NOTE: For some reason calling colorbar just once causes the loop to slow. It might have to do with colorbar
             # calling update when the image gets changed despite it being static. Could create a function that creates a colorbar

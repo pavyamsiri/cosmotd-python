@@ -1,5 +1,6 @@
 # Standard modules
 import os
+from typing import Callable
 
 # External modules
 import ffmpeg
@@ -17,15 +18,15 @@ class MplMp4Plotter(MplPngPlotter):
     together into a mp4 in a folder called `video_cache`.
     """
 
-    def __init__(self, settings: PlotterConfig):
-        super().__init__(settings)
+    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
+        super().__init__(settings, progress_callback)
 
     def close(self):
         plt.close(self._fig)
         # Construct file names
         src_folder = os.path.dirname(os.path.realpath(__file__))
         input_file_template = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_%d.png"
-        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/simulation.mp4"
+        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/{self._file_name}.mp4"
         (
             ffmpeg.input(
                 input_file_template,

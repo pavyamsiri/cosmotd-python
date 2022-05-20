@@ -10,7 +10,7 @@ from cosmotd.plot.settings import ScatterConfig
 
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
-from .fields import Field
+from .fields import Field, MissingFieldsException, load_fields, save_fields
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
@@ -42,6 +42,7 @@ def potential_derivative_ca_phi1(
     kappa: float,
     t: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
 ) -> npt.NDArray[np.float32]:
@@ -76,7 +77,9 @@ def potential_derivative_ca_phi1(
     t : float
         the current time.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
@@ -109,7 +112,7 @@ def potential_derivative_ca_phi1(
         2
         * m
         * K
-        * (t / t0) ** m_growth
+        * (t / s0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -136,6 +139,7 @@ def potential_derivative_ca_phi2(
     kappa: float,
     t: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
 ) -> npt.NDArray[np.float32]:
@@ -170,7 +174,9 @@ def potential_derivative_ca_phi2(
     t : float
         the current time.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
@@ -203,7 +209,7 @@ def potential_derivative_ca_phi2(
         2
         * m
         * K
-        * (t / t0) ** m_growth
+        * (t / s0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -230,6 +236,7 @@ def potential_derivative_ca_psi1(
     kappa: float,
     t: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
 ) -> npt.NDArray[np.float32]:
@@ -264,7 +271,9 @@ def potential_derivative_ca_psi1(
     t : float
         the current time.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
@@ -297,7 +306,7 @@ def potential_derivative_ca_psi1(
         2
         * m_prime
         * K
-        * (t / t0) ** m_growth
+        * (t / s0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -324,6 +333,7 @@ def potential_derivative_ca_psi2(
     kappa: float,
     t: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
 ) -> npt.NDArray[np.float32]:
@@ -358,7 +368,9 @@ def potential_derivative_ca_psi2(
     t : float
         the current time.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
@@ -391,7 +403,7 @@ def potential_derivative_ca_psi2(
         2
         * m_prime
         * K
-        * (t / t0) ** m_growth
+        * (t / s0) ** m_growth
         * np.sin(
             m * np.arctan2(phi_imaginary, phi_real)
             + m_prime * np.arctan2(psi_imaginary, psi_real)
@@ -404,6 +416,7 @@ def potential_derivative_ca_psi2(
 
 
 def plot_companion_axion_simulation(
+    M: int,
     N: int,
     dx: float,
     dt: float,
@@ -418,10 +431,12 @@ def plot_companion_axion_simulation(
     K: float,
     kappa: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
     plot_backend: type[Plotter],
     run_time: int | None,
+    file_name: str | None,
     seed: int | None,
 ):
     """Plots a companion axion model simulation in two dimensions.
@@ -455,7 +470,9 @@ def plot_companion_axion_simulation(
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
@@ -464,16 +481,190 @@ def plot_companion_axion_simulation(
         the plotting backend to use.
     run_time : int | None
         the number of timesteps simulated.
+    file_name : str | None
+        the name of the file to load field data from.
     seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Raises
+    ------
+    MissingFieldsException
+        If the given data file is missing fields that are needed to run the simulation.
     """
+
+    # Load from file if given
+    if file_name is not None:
+        loaded_fields = load_fields(file_name)
+        if len(loaded_fields) > 4:
+            print(
+                "WARNING: The number of fields in the given data file is greater than required!"
+            )
+        elif len(loaded_fields) < 4:
+            print(
+                "ERROR: The number of fields in the given data file is less than required!"
+            )
+            raise MissingFieldsException("Requires at least 4 field.")
+        phi_real_field = loaded_fields[0]
+        phi_imaginary_field = loaded_fields[1]
+        psi_real_field = loaded_fields[2]
+        psi_imaginary_field = loaded_fields[3]
+        if M != phi_real_field.value.shape[0] or N != phi_real_field.value.shape[1]:
+            print(
+                "WARNING: The given box size does not match the box size of the field loaded from the file!"
+            )
+        M = phi_real_field.value.shape[0]
+        N = phi_real_field.value.shape[1]
+    # Otherwise generate from RNG
+    else:
+        # Seed the RNG
+        np.random.seed(seed)
+
+        # Initialise phi
+        phi_real = 0.1 * np.random.normal(size=(M, N))
+        phidot_real = np.zeros(shape=(M, N))
+        phi_imaginary = 0.1 * np.random.normal(size=(M, N))
+        phidot_imaginary = np.zeros(shape=(M, N))
+        # Initialise psi
+        psi_real = 0.1 * np.random.normal(size=(M, N))
+        psidot_real = np.zeros(shape=(M, N))
+        psi_imaginary = 0.1 * np.random.normal(size=(M, N))
+        psidot_imaginary = np.zeros(shape=(M, N))
+
+        # Initialise acceleration
+        phidotdot_real = evolve_acceleration(
+            phi_real,
+            phidot_real,
+            potential_derivative_ca_phi1(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary,
+            phidot_imaginary,
+            potential_derivative_ca_phi2(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_real = evolve_acceleration(
+            psi_real,
+            psidot_real,
+            potential_derivative_ca_psi1(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_imaginary = evolve_acceleration(
+            psi_imaginary,
+            psidot_imaginary,
+            potential_derivative_ca_psi2(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Package fields
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_imaginary_field = Field(
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+        )
+        psi_real_field = Field(psi_real, psidot_real, psidotdot_real)
+        psi_imaginary_field = Field(
+            psi_imaginary, psidot_imaginary, psidotdot_imaginary
+        )
+        file_name = f"companion_axion_M{M}_N{N}_np{seed}.ctdd"
+        save_fields(
+            [phi_real_field, phi_imaginary_field, psi_real_field, psi_imaginary_field],
+            file_name,
+        )
+
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
-        run_time = int(0.5 * N * dx / dt)
+        run_time = int(0.5 * min(M, N) * dx / dt)
 
     # Initialise simulation
     simulation = run_companion_axion_simulation(
-        N,
+        phi_real_field,
+        phi_imaginary_field,
+        psi_real_field,
+        psi_imaginary_field,
         dx,
         dt,
         alpha,
@@ -487,17 +678,27 @@ def plot_companion_axion_simulation(
         K,
         kappa,
         t0,
+        s0,
         n_growth,
         m_growth,
         run_time,
-        seed,
     )
+
+    # Number of iterations in the simulation (including initial condition)
+    simulation_end = run_time + 1
+
+    pbar = tqdm(total=simulation_end)
 
     # Set up plotting
     plot_api = plot_backend(
         PlotterConfig(
-            title="Companion axion simulation", nrows=2, ncols=2, figsize=(640, 480)
-        )
+            title="Companion axion simulation",
+            file_name="companion_axion",
+            nrows=2,
+            ncols=2,
+            figsize=(640, 480),
+        ),
+        lambda x: pbar.update(x),
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
@@ -517,7 +718,7 @@ def plot_companion_axion_simulation(
         phi_imaginary_field,
         psi_real_field,
         psi_imaginary_field,
-    ) in tqdm(enumerate(simulation), total=simulation_end):
+    ) in enumerate(simulation):
         # Unpack
         phi_real = phi_real_field.value
         phi_imaginary = phi_imaginary_field.value
@@ -583,10 +784,14 @@ def plot_companion_axion_simulation(
         plot_api.set_axes_labels(r"$x$", r"$y$", 3)
         plot_api.flush()
     plot_api.close()
+    pbar.close()
 
 
 def run_companion_axion_simulation(
-    N: int,
+    phi_real_field: Field,
+    phi_imaginary_field: Field,
+    psi_real_field: Field,
+    psi_imaginary_field: Field,
     dx: float,
     dt: float,
     alpha: float,
@@ -600,17 +805,23 @@ def run_companion_axion_simulation(
     K: float,
     kappa: float,
     t0: float,
+    s0: float,
     n_growth: float,
     m_growth: float,
     run_time: int,
-    seed: int | None,
 ) -> Generator[tuple[Field, Field, Field, Field], None, None]:
     """Runs a cosmic string simulation in two dimensions.
 
     Parameters
     ----------
-    N : int
-        the size of the field to simulate.
+    phi_real_field : Field
+        the real component of the phi field.
+    phi_imaginary_field : Field
+        the imaginary component of the phi field.
+    psi_real_field : Field
+        the real component of the psi field.
+    psi_imaginary_field : Field
+        the imaginary component of the psi field.
     dx : float
         the spacing between grid points.
     dt : float
@@ -636,15 +847,15 @@ def run_companion_axion_simulation(
     kappa : float
         the strength of the second axion potential term relative to the other axion potential.
     t0 : float
-        the characteristic timescale of the axion potential's growth.
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
     n_growth : float
         the power law exponent of the strength growth of the first axion potential term.
     m_growth : float
         the power law exponent of the strength growth of the second axion potential term.
     run_time : int
         the number of timesteps simulated.
-    seed : int | None
-        the seed used in generation of the initial state of the field.
 
     Yields
     ------
@@ -659,132 +870,6 @@ def run_companion_axion_simulation(
     """
     # Clock
     t = 1.0 * dt
-
-    # Seed the RNG
-    np.random.seed(seed)
-
-    # Initialise phi
-    phi_real = 0.1 * np.random.normal(size=(N, N))
-    phidot_real = np.zeros(shape=(N, N))
-    phi_imaginary = 0.1 * np.random.normal(size=(N, N))
-    phidot_imaginary = np.zeros(shape=(N, N))
-    # Initialise psi
-    psi_real = 0.1 * np.random.normal(size=(N, N))
-    psidot_real = np.zeros(shape=(N, N))
-    psi_imaginary = 0.1 * np.random.normal(size=(N, N))
-    psidot_imaginary = np.zeros(shape=(N, N))
-
-    # Initialise acceleration
-    phidotdot_real = evolve_acceleration(
-        phi_real,
-        phidot_real,
-        potential_derivative_ca_phi1(
-            phi_real,
-            phi_imaginary,
-            psi_real,
-            psi_imaginary,
-            eta,
-            lam,
-            n,
-            n_prime,
-            m,
-            m_prime,
-            K,
-            kappa,
-            t,
-            t0,
-            n_growth,
-            m_growth,
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    phidotdot_imaginary = evolve_acceleration(
-        phi_imaginary,
-        phidot_imaginary,
-        potential_derivative_ca_phi2(
-            phi_real,
-            phi_imaginary,
-            psi_real,
-            psi_imaginary,
-            eta,
-            lam,
-            n,
-            n_prime,
-            m,
-            m_prime,
-            K,
-            kappa,
-            t,
-            t0,
-            n_growth,
-            m_growth,
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    psidotdot_real = evolve_acceleration(
-        psi_real,
-        psidot_real,
-        potential_derivative_ca_psi1(
-            phi_real,
-            phi_imaginary,
-            psi_real,
-            psi_imaginary,
-            eta,
-            lam,
-            n,
-            n_prime,
-            m,
-            m_prime,
-            K,
-            kappa,
-            t,
-            t0,
-            n_growth,
-            m_growth,
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    psidotdot_imaginary = evolve_acceleration(
-        psi_imaginary,
-        psidot_imaginary,
-        potential_derivative_ca_psi2(
-            phi_real,
-            phi_imaginary,
-            psi_real,
-            psi_imaginary,
-            eta,
-            lam,
-            n,
-            n_prime,
-            m,
-            m_prime,
-            K,
-            kappa,
-            t,
-            t0,
-            n_growth,
-            m_growth,
-        ),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-
-    # Package fields
-    phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
-    phi_imaginary_field = Field(phi_imaginary, phidot_imaginary, phidotdot_imaginary)
-    psi_real_field = Field(psi_real, psidot_real, psidotdot_real)
-    psi_imaginary_field = Field(psi_imaginary, psidot_imaginary, psidotdot_imaginary)
 
     # Yield the initial condition
     yield phi_real_field, phi_imaginary_field, psi_real_field, psi_imaginary_field
@@ -825,10 +910,10 @@ def run_companion_axion_simulation(
             phi_real_field.value,
             phi_real_field.velocity,
             potential_derivative_ca_phi1(
-                phi_real,
-                phi_imaginary,
-                psi_real,
-                psi_imaginary,
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
                 eta,
                 lam,
                 n,
@@ -839,6 +924,7 @@ def run_companion_axion_simulation(
                 kappa,
                 t,
                 t0,
+                s0,
                 n_growth,
                 m_growth,
             ),
@@ -851,10 +937,10 @@ def run_companion_axion_simulation(
             phi_imaginary_field.value,
             phi_imaginary_field.velocity,
             potential_derivative_ca_phi2(
-                phi_real,
-                phi_imaginary,
-                psi_real,
-                psi_imaginary,
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
                 eta,
                 lam,
                 n,
@@ -865,6 +951,7 @@ def run_companion_axion_simulation(
                 kappa,
                 t,
                 t0,
+                s0,
                 n_growth,
                 m_growth,
             ),
@@ -877,10 +964,10 @@ def run_companion_axion_simulation(
             psi_real_field.value,
             psi_real_field.velocity,
             potential_derivative_ca_psi1(
-                phi_real,
-                phi_imaginary,
-                psi_real,
-                psi_imaginary,
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
                 eta,
                 lam,
                 n,
@@ -891,6 +978,7 @@ def run_companion_axion_simulation(
                 kappa,
                 t,
                 t0,
+                s0,
                 n_growth,
                 m_growth,
             ),
@@ -903,10 +991,10 @@ def run_companion_axion_simulation(
             psi_imaginary_field.value,
             psi_imaginary_field.velocity,
             potential_derivative_ca_psi2(
-                phi_real,
-                phi_imaginary,
-                psi_real,
-                psi_imaginary,
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
                 eta,
                 lam,
                 n,
@@ -917,6 +1005,7 @@ def run_companion_axion_simulation(
                 kappa,
                 t,
                 t0,
+                s0,
                 n_growth,
                 m_growth,
             ),

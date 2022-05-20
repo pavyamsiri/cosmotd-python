@@ -9,6 +9,8 @@ class PlotterConfig(NamedTuple):
     ----------
     title : str
         the title of the plot.
+    file_name : str
+        the file name to save the plot to.
     nrows : int
         the number of rows to plot.
     ncols : int
@@ -18,6 +20,7 @@ class PlotterConfig(NamedTuple):
     """
 
     title: str
+    file_name: str
     nrows: int
     ncols: int
     figsize: tuple[float, float]

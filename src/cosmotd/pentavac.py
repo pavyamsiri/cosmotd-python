@@ -7,7 +7,7 @@ from numpy import typing as npt
 from tqdm import tqdm
 
 # Internal modules
-from .fields import Field
+from .fields import Field, MissingFieldsException, load_fields, save_fields
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 from .pentavac_algorithms import color_vacua
@@ -185,6 +185,7 @@ def plot_pentavac_simulation(
     era: float,
     plot_backend: type[Plotter],
     run_time: int | None,
+    file_name: str | None,
     seed: int | None,
 ):
     """Plots a domain wall simulation in two dimensions.
@@ -192,9 +193,9 @@ def plot_pentavac_simulation(
     Parameters
     ----------
     M : int
-        the number of rows of the field to simulate.
+        the number of rows in the field to simulate.
     N : int
-        the number of columns of the field to simulate.
+        the number of columns in the field to simulate.
     dx : float
         the spacing between grid points.
     dt : float
@@ -209,35 +210,145 @@ def plot_pentavac_simulation(
         the plotting backend to use.
     run_time : int | None
         the number of timesteps simulated.
+    file_name : str | None
+        the name of the file to load field data from.
     seed : int | None
         the seed used in generation of the initial state of the field.
+
+    Raises
+    ------
+    MissingFieldsException
+        If the given data file is missing fields that are needed to run the simulation.
     """
+
+    # Load from file if given
+    if file_name is not None:
+        loaded_fields = load_fields(file_name)
+        if len(loaded_fields) > 4:
+            print(
+                "WARNING: The number of fields in the given data file is greater than required!"
+            )
+        elif len(loaded_fields) < 4:
+            print(
+                "ERROR: The number of fields in the given data file is less than required!"
+            )
+            raise MissingFieldsException("Requires at least 4 fields.")
+        phi1_field = loaded_fields[0]
+        phi2_field = loaded_fields[1]
+        phi3_field = loaded_fields[2]
+        phi4_field = loaded_fields[3]
+        if M != phi1_field.value.shape[0] or N != phi1_field.value.shape[1]:
+            print(
+                "WARNING: The given box size does not match the box size of the field loaded from the file!"
+            )
+        M = phi1_field.value.shape[0]
+        N = phi1_field.value.shape[1]
+    # Otherwise generate from RNG
+    else:
+        # Seed the RNG
+        np.random.seed(seed)
+
+        # Initialise fields
+        phi1 = 0.1 * np.random.normal(size=(M, N))
+        phi1dot = np.zeros(shape=(M, N))
+        phi2 = 0.1 * np.random.normal(size=(M, N))
+        phi2dot = np.zeros(shape=(M, N))
+        phi3 = 0.1 * np.random.normal(size=(M, N))
+        phi3dot = np.zeros(shape=(M, N))
+        phi4 = 0.1 * np.random.normal(size=(M, N))
+        phi4dot = np.zeros(shape=(M, N))
+
+        # Acceleration terms
+        phi1dotdot = evolve_acceleration(
+            phi1,
+            phi1dot,
+            potential_derivative_phi1_pentavac(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi2dotdot = evolve_acceleration(
+            phi2,
+            phi2dot,
+            potential_derivative_phi2_pentavac(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi3dotdot = evolve_acceleration(
+            phi3,
+            phi3dot,
+            potential_derivative_phi3_pentavac(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi4dotdot = evolve_acceleration(
+            phi4,
+            phi4dot,
+            potential_derivative_phi4_pentavac(phi1, phi2, phi3, phi4, epsilon),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Package fields
+        phi1_field = Field(phi1, phi1dot, phi1dotdot)
+        phi2_field = Field(phi2, phi2dot, phi2dotdot)
+        phi3_field = Field(phi3, phi3dot, phi3dotdot)
+        phi4_field = Field(phi4, phi4dot, phi4dotdot)
+
+        # Save fields
+        file_name = f"pentavac_M{M}_N{N}_np{seed}.ctdd"
+        save_fields([phi1_field, phi2_field, phi3_field, phi4_field], file_name)
+
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
-        run_time = int(0.5 * N * dx / dt)
+        run_time = int(0.5 * min(M, N) * dx / dt)
 
     # Initialise simulation
     simulation = run_pentavac_simulation(
-        M, N, dx, dt, alpha, epsilon, era, run_time, seed
+        phi1_field,
+        phi2_field,
+        phi3_field,
+        phi4_field,
+        dx,
+        dt,
+        alpha,
+        epsilon,
+        era,
+        run_time,
     )
-
-    # Set up plotting
-    plot_api = plot_backend(
-        PlotterConfig(
-            title="Pentavac simulation", nrows=1, ncols=3, figsize=(2 * 640, 480)
-        )
-    )
-    # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis")
-    angle_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    image_extents = (0, dx*N, 0, dx*M)
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
-    for _, (phi1_field, phi2_field, phi3_field, phi4_field) in tqdm(
-        enumerate(simulation), total=simulation_end
-    ):
+    pbar = tqdm(total=simulation_end)
+
+    # Set up plotting
+    plot_api = plot_backend(
+        PlotterConfig(
+            title="Pentavac simulation",
+            file_name="pentavac",
+            nrows=1,
+            ncols=3,
+            figsize=(2 * 640, 480),
+        ),
+        lambda x: pbar.update(x),
+    )
+    # Configure settings for drawing
+    draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis")
+    angle_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    image_extents = (0, dx * M, 0, dx * M)
+
+    # Number of iterations in the simulation (including initial condition)
+    simulation_end = run_time + 1
+
+    for _, (phi1_field, phi2_field, phi3_field, phi4_field) in enumerate(simulation):
         # Unpack
         phi1 = phi1_field.value
         phi2 = phi2_field.value
@@ -264,27 +375,33 @@ def plot_pentavac_simulation(
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
         plot_api.flush()
     plot_api.close()
+    pbar.close()
 
 
 def run_pentavac_simulation(
-    M: int,
-    N: int,
+    phi1_field: Field,
+    phi2_field: Field,
+    phi3_field: Field,
+    phi4_field: Field,
     dx: float,
     dt: float,
     alpha: float,
     epsilon: float,
     era: float,
     run_time: int,
-    seed: int | None,
 ) -> Generator[tuple[Field, Field, Field, Field], None, None]:
     """Runs a domain wall simulation in two dimensions.
 
     Parameters
     ----------
-    M : int
-        the number of rows of the field to simulate.
-    N : int
-        the number of columns of the field to simulate.
+    phi1_field : Field
+        the real component of the phi field.
+    phi2_field : Field
+        the imaginary component of the phi field.
+    phi3_field : Field
+        the real component of the psi field.
+    phi4_field : Field
+        the imaginary component of the psi field.
     dx : float
         the spacing between grid points.
     dt : float
@@ -297,8 +414,6 @@ def run_pentavac_simulation(
         the cosmological era.
     run_time : int
         the number of timesteps simulated.
-    seed : int | None
-        the seed used in generation of the initial state of the field.
 
     Yields
     ------
@@ -313,63 +428,6 @@ def run_pentavac_simulation(
     """
     # Clock
     t = 1.0 * dt
-
-    # Seed the RNG
-    np.random.seed(seed)
-
-    # Initialise fields
-    phi1 = 0.1 * np.random.normal(size=(M, N))
-    phi1dot = np.zeros(shape=(M, N))
-    phi2 = 0.1 * np.random.normal(size=(M, N))
-    phi2dot = np.zeros(shape=(M, N))
-    phi3 = 0.1 * np.random.normal(size=(M, N))
-    phi3dot = np.zeros(shape=(M, N))
-    phi4 = 0.1 * np.random.normal(size=(M, N))
-    phi4dot = np.zeros(shape=(M, N))
-
-    # Acceleration terms
-    phi1dotdot = evolve_acceleration(
-        phi1,
-        phi1dot,
-        potential_derivative_phi1_pentavac(phi1, phi2, phi3, phi4, epsilon),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    phi2dotdot = evolve_acceleration(
-        phi2,
-        phi2dot,
-        potential_derivative_phi2_pentavac(phi1, phi2, phi3, phi4, epsilon),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    phi3dotdot = evolve_acceleration(
-        phi3,
-        phi3dot,
-        potential_derivative_phi3_pentavac(phi1, phi2, phi3, phi4, epsilon),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-    phi4dotdot = evolve_acceleration(
-        phi4,
-        phi4dot,
-        potential_derivative_phi4_pentavac(phi1, phi2, phi3, phi4, epsilon),
-        alpha,
-        era,
-        dx,
-        t,
-    )
-
-    # Package fields
-    phi1_field = Field(phi1, phi1dot, phi1dotdot)
-    phi2_field = Field(phi2, phi2dot, phi2dotdot)
-    phi3_field = Field(phi3, phi3dot, phi3dotdot)
-    phi4_field = Field(phi4, phi4dot, phi4dotdot)
 
     yield phi1_field, phi2_field, phi3_field, phi4_field
 

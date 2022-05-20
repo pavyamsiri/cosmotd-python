@@ -7,11 +7,7 @@ from numpy import typing as npt
 import scipy.signal
 
 
-"""
----------
-Laplacian
----------
-"""
+"""Laplacian"""
 
 
 # NOTE: The iterative JIT-compiled version of the Laplacian 2D function is faster than the matrix version by 2x, likely due to
