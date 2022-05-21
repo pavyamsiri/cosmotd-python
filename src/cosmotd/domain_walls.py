@@ -157,8 +157,6 @@ def plot_domain_wall_simulation(
 
     # Set run time of simulation to light crossing time if no specific time is given
     if run_time is None:
-        # run_time = int(0.5 * N * dx / dt)
-        # NOTE: Is this the correct light crossing time for a rectangular box?
         run_time = int(0.5 * min(M, N) * dx / dt)
 
     # Initialise simulation

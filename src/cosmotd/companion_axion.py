@@ -15,10 +15,6 @@ from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
-# NOTE: Should t0 be different for the two potential terms?
-# NOTE: Forgot but what should n_growth for single axion and companion axion case be?
-
-
 # Parameters used in companion axion paper
 # n = 3
 # n_prime = 1 / 2

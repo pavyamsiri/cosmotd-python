@@ -6,9 +6,11 @@ from collections.abc import Generator
 # External modules
 import numpy as np
 from numpy import typing as npt
-from pygments import highlight
 from tqdm import tqdm
-from cosmotd.domain_wall_algorithms import find_domain_walls_with_width
+from numba import njit
+
+
+from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
 
 from cosmotd.plot.settings import ScatterConfig
 
@@ -279,7 +281,7 @@ def plot_single_axion_simulation(
         growth,
         run_time,
     )
-    
+
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
@@ -305,7 +307,14 @@ def plot_single_axion_simulation(
     negative_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
+    line_settings = LineConfig(color="#1f77b4", linestyle="-")
     image_extents = (0, M * dx, 0, N * dx)
+
+    # x-axis that spans the simulation's run time
+    run_time_x_axis = np.arange(0, simulation_end, 1, dtype=np.int32)
+    # Domain wall count
+    dw_count = np.empty(simulation_end)
+    dw_count.fill(np.nan)
 
     for idx, (phi_real_field, phi_imaginary_field) in enumerate(simulation):
         # Unpack
@@ -319,42 +328,39 @@ def plot_single_axion_simulation(
         # Get positions of strings to plot in scatter
         positive_strings = np.nonzero(strings > 0)
         negative_strings = np.nonzero(strings < 0)
+        # Color field
+        rounded_field = round_field_to_minima(phase, n)
         # Identify domain walls
-        domain_walls = find_domain_walls_with_width(phase, w)
-        domain_walls_masked = np.ma.masked_values(domain_walls, 0)
+        domain_walls = find_domain_walls_with_width_multidomain(rounded_field, w)
+        # Count domain walls
+        dw_count[idx] = np.count_nonzero(domain_walls) / (M * N)
 
         # Plot
         plot_api.reset()
-        # Phase
-        plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
-        plot_api.set_title(r"$\theta$", 0)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Highlighting strings
-        plot_api.draw_image(phase, image_extents, 1, 0, draw_settings)
-        plot_api.draw_scatter(
-            dx * positive_strings[1],
-            dx * positive_strings[0],
-            1,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_strings[1],
-            dx * negative_strings[0],
-            1,
-            1,
-            negative_string_settings,
-        )
-        plot_api.set_title(r"Strings", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        plot_api.set_axes_limits(0, dx * N, 0, dx * N, 1)
-        # # Walls
-        # plot_api.draw_image(
-        #     domain_walls_masked, image_extents, 2, 0, highlight_settings
+        plot_api.draw_image(rounded_field, image_extents, 0, 0, draw_settings)
+        # plot_api.draw_scatter(
+        #     dx * positive_strings[1],
+        #     dx * positive_strings[0],
+        #     0,
+        #     0,
+        #     positive_string_settings,
         # )
-        # plot_api.set_title("Domain walls", 2)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 2)
-        # plot_api.set_axes_limits(0, dx * N, 0, dx * N, 2)
+        # plot_api.draw_scatter(
+        #     dx * negative_strings[1],
+        #     dx * negative_strings[0],
+        #     0,
+        #     1,
+        #     negative_string_settings,
+        # )
+        plot_api.set_title(r"Rounded Field", 0)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
+        plot_api.set_axes_limits(0, dx * M, 0, dx * N, 0)
+        # Wall count
+        plot_api.draw_plot(run_time_x_axis, dw_count, 1, 0, line_settings)
+        plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 1)
+        plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        plot_api.set_title("Domain wall count ratio", 1)
         plot_api.flush()
     plot_api.close()
     pbar.close()
@@ -496,3 +502,29 @@ def run_single_axion_simulation(
 
         # Yield fields
         yield phi_real_field, phi_imaginary_field
+
+
+# TODO: Add this function as a function in fields.py. Change from taking in color anomaly to just a list of values to round to.
+# TODO: How to deal with periodic phase if we are generalising to any minima?
+@njit
+def round_field_to_minima(
+    field: npt.NDArray[np.float32], color_anomaly: int
+) -> npt.NDArray[np.float32]:
+    minima = np.zeros(color_anomaly)
+    for n in range(color_anomaly):
+        value = n * 2 * np.pi / color_anomaly
+        if value > np.pi:
+            value -= 2 * np.pi
+        minima[n] = value
+
+    M = field.shape[0]
+    N = field.shape[1]
+    colored_field = np.empty((M, N))
+
+    for i in range(M):
+        for j in range(N):
+            current_value = field[i][j]
+            distance = np.abs(minima - current_value)
+            distance[distance > np.pi] = 2 * np.pi - distance[distance > np.pi]
+            colored_field[i][j] = minima[np.argmin(distance)]
+    return colored_field
