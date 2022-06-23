@@ -6,6 +6,8 @@ import numpy as np
 from numpy import typing as npt
 from tqdm import tqdm
 
+from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
+
 # Internal modules
 from .fields import Field, MissingFieldsException, load_fields, save_fields
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
@@ -334,14 +336,15 @@ def plot_pentavac_simulation(
         PlotterConfig(
             title="Pentavac simulation",
             file_name="pentavac",
-            nrows=1,
-            ncols=3,
-            figsize=(2 * 640, 480),
+            nrows=2,
+            ncols=2,
+            figsize=(640, 480),
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis")
+    domain_wall_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
     angle_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
     image_extents = (0, dx * M, 0, dx * M)
 
@@ -359,6 +362,12 @@ def plot_pentavac_simulation(
         psi_phase = np.arctan2(phi4, phi3)
         # Color in field
         colored_field = color_vacua(phi_phase, psi_phase, epsilon)
+        # Identify domain walls
+        domain_walls = find_domain_walls_with_width_multidomain(colored_field, 1)
+        domain_walls_masked = np.ma.masked_where(np.isclose(domain_walls, 0), domain_walls)
+        colored_field_masked = np.ma.masked_where(
+            np.abs(domain_walls) > 0, colored_field
+        )
 
         # Plot
         plot_api.reset()
@@ -366,13 +375,18 @@ def plot_pentavac_simulation(
         plot_api.draw_image(colored_field, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"Vacua", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # Phases
-        plot_api.draw_image(phi_phase, image_extents, 1, 0, angle_settings)
-        plot_api.set_title(r"Phase of $\phi$", 1)
+        # Domain walls
+        plot_api.draw_image(colored_field_masked, image_extents, 1, 0, draw_settings)
+        plot_api.draw_image(domain_walls_masked, image_extents, 1, 1, domain_wall_settings)
+        plot_api.set_title(r"Domain walls", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        plot_api.draw_image(psi_phase, image_extents, 2, 0, angle_settings)
-        plot_api.set_title(r"Phase of $\psi$", 2)
+        # Phases
+        plot_api.draw_image(phi_phase, image_extents, 2, 0, angle_settings)
+        plot_api.set_title(r"Phase of $\phi$", 2)
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        plot_api.draw_image(psi_phase, image_extents, 3, 0, angle_settings)
+        plot_api.set_title(r"Phase of $\psi$", 3)
+        plot_api.set_axes_labels(r"$x$", r"$y$", 3)
         plot_api.flush()
     plot_api.close()
     pbar.close()

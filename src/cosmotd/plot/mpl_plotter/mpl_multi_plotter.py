@@ -17,9 +17,9 @@ from cosmotd.plot.settings import ImageConfig, LineConfig, PlotterConfig, Scatte
 from cosmotd.plot.mpl_plotter.mpl_png_plotter import SUB_TO_ROOT
 
 
-# TODO: Instead of creating a job every frame and so processes only get to draw a single frame before completion, we instead
-# queue multiple frames per job and so many frames can work off a single figure and utilise set_data.
-# NOTE: Using this plotter can speed up iteration speed for 0.5 s/iteration to 0.1s/iteration.
+# TODO: Find way to be able to configure this parameter to optimise for each plotting
+# Number of frames to render per process job
+FRAMES_IN_FLIGHT = 1
 
 
 class DrawImageCommand(NamedTuple):
@@ -112,7 +112,7 @@ class SetTitleCommand(NamedTuple):
 class SetLegendCommand(NamedTuple):
     """A structure that contains the necessary information to set the legend of a subplot.
 
-    Parameters
+    Attributes
     ----------
     legend : list[str]
         the legend.
@@ -169,7 +169,7 @@ class SetAxisLimitsCommand(NamedTuple):
 class SetAutoscaleCommand(NamedTuple):
     """A structure that contains the necessary information to turn on/off autoscaling.
 
-    Parameters
+    Attributes
     ----------
     enable : bool
         if `True` will turn on autoscale and if `False` will turn off autoscale.
@@ -182,6 +182,18 @@ class SetAutoscaleCommand(NamedTuple):
     enable: bool
     axis: str
     axis_index: int
+
+
+class EndFrameCommand(NamedTuple):
+    """A structure used to signify the end of a frame. It contains the frame number of the ended frame.
+
+    Attributes
+    ----------
+    frame_number : int
+        the frame number of the frame to end.
+    """
+
+    frame_number: int
 
 
 def plotting_job(count: int, settings: PlotterConfig, commands: list):
@@ -314,20 +326,21 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         # Set autoscale
         elif isinstance(command, SetAutoscaleCommand):
             axes[command.axis_index].autoscale(enable=command.enable, axis=command.axis)
+        # End frame
+        elif isinstance(command, EndFrameCommand):
+            # Save as png
+            plt.tight_layout()
+            fig.canvas.draw()
+            # Construct file name
+            src_folder = os.path.dirname(os.path.realpath(__file__))
+            file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_{command.frame_number}.png"
 
-    # Save as png
-    plt.tight_layout()
-    fig.canvas.draw()
-    # Construct file name
-    src_folder = os.path.dirname(os.path.realpath(__file__))
-    file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_{count}.png"
-
-    # Save figure as png
-    fig.savefig(
-        file_name,
-        facecolor="white",
-        transparent=False,
-    )
+            # Save figure as png
+            fig.savefig(
+                file_name,
+                facecolor="white",
+                transparent=False,
+            )
 
     plt.close(fig)
 
@@ -339,7 +352,9 @@ class MplMultiPlotter(Plotter):
     This plotter uses a process pool to create the plots in separate processes concurrently to speed up iteration.
     """
 
-    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
+    def __init__(
+        self, settings: PlotterConfig, progress_callback: Callable[[int], None]
+    ):
         # Store progress_callback
         self._progress_callback = progress_callback
 
@@ -368,23 +383,18 @@ class MplMultiPlotter(Plotter):
         pass
 
     def flush(self):
-        # Send plotting task out to another process using the pool
-        self._pool.apply_async(
-            plotting_job,
-            args=(
-                self._count,
-                self._settings,
-                self._commands,
-            ),
-            callback=lambda x: self._progress_callback(1),
-        )
-        # plotting_job(self._count, self._settings, self._commands)
-        # Reset list
-        self._commands = []
+        # Add end frame command
+        self._commands.append(EndFrameCommand(self._count))
+
+        # Only send plotting task every `FRAMES_IN_FLIGHT` frames
+        if self._count % FRAMES_IN_FLIGHT == 0 and self._count > 0:
+            self._submit_command_queue()
         # Increment count
         self._count += 1
 
     def close(self):
+        # FLush remaining commands
+        self._submit_command_queue()
         # Wait until plotting is complete
         self._pool.close()
         self._pool.join()
@@ -467,3 +477,22 @@ class MplMultiPlotter(Plotter):
 
     def set_autoscale(self, enable: bool, axis: str, axis_index: int):
         self._commands.append(SetAutoscaleCommand(enable, axis, axis_index))
+
+    def _submit_command_queue(self):
+        """Submits the command queue to a process in the process pool to be executed."""
+        # Count number of frames to be rendered
+        frame_count = len(
+            [None for command in self._commands if isinstance(command, EndFrameCommand)]
+        )
+        # Send plotting task out to another process using the pool
+        self._pool.apply_async(
+            plotting_job,
+            args=(
+                self._count,
+                self._settings,
+                self._commands,
+            ),
+            callback=lambda x: self._progress_callback(frame_count),
+        )
+        # Reset queue
+        self._commands = []

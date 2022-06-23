@@ -410,3 +410,217 @@ def run_domain_wall_simulation(
 
         # Yield fields
         yield phi_field
+
+
+"""Tracking domain wall ratio"""
+
+
+def run_domain_wall_ratio_trials(
+    M: int,
+    N: int,
+    dx: float,
+    dt: float,
+    alpha: float,
+    eta: float,
+    era: float,
+    w: float,
+    num_trials: int,
+    run_time: int | None,
+    seeds_given: list[int] | None,
+) -> tuple[list[float], list[int]]:
+    """Runs multiple domain wall simulations of different seeds and tracks the final domain wall ratio.
+
+    Parameters
+    ----------
+    M : int
+        the number of rows in the field to simulate.
+    N : int
+        the number of columns in the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    eta : float
+        the location of the symmetry broken minima.
+    era : float
+        the cosmological era.
+    w : float
+        the width of the domain walls.
+    num_trials : int
+        the number of simulations to run.
+    run_time : int | None
+        the number of timesteps simulated. If `None` the number of timesteps used will be the light crossing time.
+    seeds_given : list[int] | None
+        the seed used in generation of the initial state of the field. If `None`, random seeds will be used instead.
+
+    Returns
+    -------
+    dw_ratios : list[float]
+        the final domain wall ratio for each simulation.
+    seeds_used : list[int]
+        the seeds used.
+    """
+
+    # Convert wall width to lambda
+    lam = 2 * np.pi**2 / w**2
+
+    # If seeds are not given then randomly generate seeds
+    if seeds_given is None:
+        # Use a random seed to generate the seeds to be used
+        np.random.seed()
+        seeds = np.random.randint(
+            0, int(2**32 - 1), size=num_trials, dtype=np.uint32
+        ).tolist()
+    # Otherwise use the given seeds (up to `num_trials`)
+    else:
+        seeds = seeds_given[:num_trials]
+
+    # Set run time of simulation to light crossing time if no specific time is given
+    if run_time is None:
+        run_time = int(0.5 * min(M, N) * dx / dt)
+
+    dw_ratios = np.empty(num_trials)
+    dw_ratios.fill(np.nan)
+
+    pbar = tqdm(total=num_trials * (run_time + 1), leave=False)
+
+    for seed_idx, seed in enumerate(seeds):
+        # Seed
+        np.random.seed(seed)
+        # Initialise field
+        phi = 0.1 * np.random.normal(size=(M, N))
+        phidot = np.zeros(shape=(M, N))
+        phidotdot = evolve_acceleration(
+            phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, dt
+        )
+        phi_field = Field(phi, phidot, phidotdot)
+        # Initialise simulation
+        simulation = run_domain_wall_simulation(
+            phi_field, dx, dt, alpha, eta, era, lam, run_time
+        )
+
+        # Run simulation to completion
+        for _, (phi_field) in enumerate(simulation):
+            # Update progress bar
+            pbar.update(1)
+        phi = phi_field.value
+        # Identify domain walls
+        domain_walls = find_domain_walls_with_width(phi, w)
+        # Calculate domain wall ratio
+        dw_ratios[seed_idx] = np.count_nonzero(domain_walls) / (M * N)
+    pbar.close()
+
+    return dw_ratios.tolist(), seeds
+
+
+def run_domain_wall_ratio_trials_percentile(
+    M: int,
+    N: int,
+    dx: float,
+    dt: float,
+    alpha: float,
+    eta: float,
+    era: float,
+    w: float,
+    num_trials: int,
+    run_time: int | None,
+    seeds_given: list[int] | None,
+) -> tuple[list[float], list[float], list[float], list[int]]:
+    """Runs multiple domain wall simulations of different seeds and tracks the final domain wall ratio.
+
+    Parameters
+    ----------
+    M : int
+        the number of rows in the field to simulate.
+    N : int
+        the number of columns in the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    eta : float
+        the location of the symmetry broken minima.
+    era : float
+        the cosmological era.
+    w : float
+        the width of the domain walls.
+    num_trials : int
+        the number of simulations to run.
+    run_time : int | None
+        the number of timesteps simulated. If `None` the number of timesteps used will be the light crossing time.
+    seeds_given : list[int] | None
+        the seed used in generation of the initial state of the field. If `None`, random seeds will be used instead.
+
+    Returns
+    -------
+    dw_ratios : list[float]
+        the final domain wall ratio for each simulation.
+    seeds_used : list[int]
+        the seeds used.
+    """
+
+    # Convert wall width to lambda
+    lam = 2 * np.pi**2 / w**2
+
+    # If seeds are not given then randomly generate seeds
+    if seeds_given is None:
+        # Use a random seed to generate the seeds to be used
+        np.random.seed()
+        seeds = np.random.randint(
+            0, int(2**32 - 1), size=num_trials, dtype=np.uint32
+        ).tolist()
+    # Otherwise use the given seeds (up to `num_trials`)
+    else:
+        seeds = seeds_given[:num_trials]
+
+    # Set run time of simulation to light crossing time if no specific time is given
+    if run_time is None:
+        run_time = int(0.5 * min(M, N) * dx / dt)
+
+    dw_ratios = np.empty(shape=(num_trials, run_time + 1))
+    dw_ratios.fill(np.nan)
+
+    pbar = tqdm(total=num_trials * (run_time + 1), leave=False)
+
+    for seed_idx, seed in enumerate(seeds):
+        # Seed
+        np.random.seed(seed)
+        # Initialise field
+        phi = 0.1 * np.random.normal(size=(M, N))
+        phidot = np.zeros(shape=(M, N))
+        phidotdot = evolve_acceleration(
+            phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, dt
+        )
+        phi_field = Field(phi, phidot, phidotdot)
+        # Initialise simulation
+        simulation = run_domain_wall_simulation(
+            phi_field, dx, dt, alpha, eta, era, lam, run_time
+        )
+
+        # Run simulation to completion
+        for idx, (phi_field) in enumerate(simulation):
+            # Update progress bar
+            pbar.update(1)
+            # Unpack
+            phi = phi_field.value
+            # Identify domain walls
+            domain_walls = find_domain_walls_with_width(phi, w)
+            # Calculate domain wall ratio
+            dw_ratios[seed_idx, idx] = np.count_nonzero(domain_walls) / (M * N)
+    pbar.close()
+
+    # Get min and max
+    dw_ratios_min = np.percentile(dw_ratios, 5, 0)
+    dw_ratios_max = np.percentile(dw_ratios, 95, 0)
+    dw_ratios_typical = dw_ratios[0, :]
+
+    return (
+        dw_ratios_typical.tolist(),
+        dw_ratios_min.tolist(),
+        dw_ratios_max.tolist(),
+        seeds,
+    )

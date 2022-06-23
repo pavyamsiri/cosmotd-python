@@ -6,6 +6,7 @@ import os
 import struct
 
 # External modules
+from numba import njit
 import numpy as np
 from numpy import typing as npt
 
@@ -283,3 +284,73 @@ def calculate_energy(
     # Potential energy
     energy += potential
     return energy
+
+
+"""Field rounding"""
+
+
+@njit
+def round_field_to_minima(
+    field: npt.NDArray[np.float32], minima: npt.NDArray[np.float32]
+) -> npt.NDArray[np.float32]:
+    """Rounds field values to their closest local minima given by a list.
+
+    Parameters
+    ----------
+    field : npt.NDArray[np.float32]
+        the field to round.
+    minima : npt.NDArray[np.float32]
+        the local minima of the field to round to.
+
+    Returns
+    -------
+    rounded_field : npt.NDArray[np.float32]
+        the rounded field.
+    """
+    M = field.shape[0]
+    N = field.shape[1]
+    rounded_field = np.empty((M, N))
+
+    for i in range(M):
+        for j in range(N):
+            current_value = field[i][j]
+            # Calculate distance to all possible minima
+            distance = np.abs(minima - current_value)
+            # Select the minima that is closest to the current field value
+            rounded_field[i][j] = minima[np.argmin(distance)]
+    return rounded_field
+
+
+@njit
+def periodic_round_field_to_minima(
+    field: npt.NDArray[np.float32], minima: npt.NDArray[np.float32]
+) -> npt.NDArray[np.float32]:
+    """Rounds field values to their closest local minima given by a list. Use this function if the field values are 2pi periodic,
+    and are in the range [-pi, +pi].
+
+    Parameters
+    ----------
+    field : npt.NDArray[np.float32]
+        the field to round.
+    minima : npt.NDArray[np.float32]
+        the local minima of the field to round to.
+
+    Returns
+    -------
+    rounded_field : npt.NDArray[np.float32]
+        the rounded field.
+    """
+    M = field.shape[0]
+    N = field.shape[1]
+    rounded_field = np.empty((M, N))
+
+    for i in range(M):
+        for j in range(N):
+            current_value = field[i][j]
+            # Calculate distance to all possible minima
+            distance = np.abs(minima - current_value)
+            # Distances larger than pi must be wrapped back around
+            distance[distance > np.pi] = 2 * np.pi - distance[distance > np.pi]
+            # Select the minima that is closest to the current field value
+            rounded_field[i][j] = minima[np.argmin(distance)]
+    return rounded_field

@@ -5,12 +5,19 @@ from collections.abc import Generator
 import numpy as np
 from numpy import typing as npt
 from tqdm import tqdm
+from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
 
 from cosmotd.plot.settings import ScatterConfig
 
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
-from .fields import Field, MissingFieldsException, load_fields, save_fields
+from .fields import (
+    Field,
+    MissingFieldsException,
+    load_fields,
+    periodic_round_field_to_minima,
+    save_fields,
+)
 from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
@@ -439,8 +446,10 @@ def plot_companion_axion_simulation(
 
     Parameters
     ----------
+    M : int
+        the number of rows in the field to simulate.
     N : int
-        the size of the field to simulate.
+        the number of columns in the field to simulate.
     dx : float
         the spacing between grid points.
     dt : float
@@ -655,6 +664,8 @@ def plot_companion_axion_simulation(
     if run_time is None:
         run_time = int(0.5 * min(M, N) * dx / dt)
 
+    w = np.sqrt(2 / lam) * np.pi
+
     # Initialise simulation
     simulation = run_companion_axion_simulation(
         phi_real_field,
@@ -705,11 +716,36 @@ def plot_companion_axion_simulation(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="blue"
     )
     image_extents = (0, dx * N, 0, dx * N)
+    line_settings = LineConfig(color="#1f77b4", linestyle="-")
 
     # Number of iterations in the simulation (including initial condition)
     simulation_end = run_time + 1
 
-    for _, (
+    # x-axis that spans the simulation's run time
+    run_time_x_axis = np.arange(0, simulation_end, 1, dtype=np.int32)
+    # Domain wall count
+    phi_dw_count = np.empty(simulation_end)
+    phi_dw_count.fill(np.nan)
+    psi_dw_count = np.empty(simulation_end)
+    psi_dw_count.fill(np.nan)
+
+    num_phi_minima = int(n)
+    phi_minima = np.zeros(num_phi_minima)
+    for phi_minima_idx in range(num_phi_minima):
+        value = phi_minima_idx * 2 * np.pi / num_phi_minima
+        if value > np.pi:
+            value -= 2 * np.pi
+        phi_minima[phi_minima_idx] = value
+
+    num_psi_minima = int(n)
+    psi_minima = np.zeros(num_psi_minima)
+    for psi_minima_idx in range(num_psi_minima):
+        value = psi_minima_idx * 2 * np.pi / num_psi_minima
+        if value > np.pi:
+            value -= 2 * np.pi
+        psi_minima[psi_minima_idx] = value
+
+    for idx, (
         phi_real_field,
         phi_imaginary_field,
         psi_real_field,
@@ -732,55 +768,86 @@ def plot_companion_axion_simulation(
         positive_psi_strings = np.nonzero(psi_strings > 0)
         negative_psi_strings = np.nonzero(psi_strings < 0)
 
+        # Round fields
+        rounded_phi_phase = periodic_round_field_to_minima(phi_phase, phi_minima)
+        rounded_psi_phase = periodic_round_field_to_minima(psi_phase, psi_minima)
+
+        # Identify domain walls
+        phi_domain_walls = find_domain_walls_with_width_multidomain(
+            rounded_phi_phase, w
+        )
+        psi_domain_walls = find_domain_walls_with_width_multidomain(
+            rounded_psi_phase, w
+        )
+        # Count domain walls
+        phi_dw_count[idx] = np.count_nonzero(phi_domain_walls) / (M * N)
+        psi_dw_count[idx] = np.count_nonzero(psi_domain_walls) / (M * N)
+
         # Plot
         plot_api.reset()
-        # phi phase
+        # phi phase (raw)
+        # plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
+        # phi phase (rounded)
         plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\arg{\phi}$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # phi strings
-        plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
-        plot_api.draw_scatter(
-            dx * positive_phi_strings[1],
-            dx * positive_phi_strings[0],
-            1,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_phi_strings[1],
-            dx * negative_phi_strings[0],
-            1,
-            1,
-            negative_string_settings,
-        )
-        plot_api.set_title(r"$\phi$ Strings", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        # psi phase
+        # # phi strings
+        # plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
+        # plot_api.draw_scatter(
+        #     dx * positive_phi_strings[1],
+        #     dx * positive_phi_strings[0],
+        #     1,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_phi_strings[1],
+        #     dx * negative_phi_strings[0],
+        #     1,
+        #     1,
+        #     negative_string_settings,
+        # )
+        # plot_api.set_title(r"$\phi$ Strings", 1)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        # Phi phase domain wall count
+        plot_api.draw_plot(run_time_x_axis, phi_dw_count, 1, 0, line_settings)
+        plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 1)
+        plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        plot_api.set_title("Phi Domain wall count ratio", 1)
+        # psi phase (raw)
+        # plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
+        # psi phase (rounded)
         plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
         plot_api.set_title(r"$\arg{\psi}$", 2)
         plot_api.set_axes_labels(r"$x$", r"$y$", 2)
-        # psi strings
-        plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
-        plot_api.draw_scatter(
-            dx * positive_psi_strings[1],
-            dx * positive_psi_strings[0],
-            3,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_psi_strings[1],
-            dx * negative_psi_strings[0],
-            3,
-            1,
-            negative_string_settings,
-        )
-        plot_api.set_title(r"$\psi$ Strings", 3)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 3)
+        # # psi strings
+        # plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
+        # plot_api.draw_scatter(
+        #     dx * positive_psi_strings[1],
+        #     dx * positive_psi_strings[0],
+        #     3,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_psi_strings[1],
+        #     dx * negative_psi_strings[0],
+        #     3,
+        #     1,
+        #     negative_string_settings,
+        # )
+        # plot_api.set_title(r"$\psi$ Strings", 3)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 3)
+        # Psi phase domain wall count
+        plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
+        plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
+        plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        plot_api.set_title("Psi Domain wall count ratio", 3)
         plot_api.flush()
     plot_api.close()
     pbar.close()
+
+    return phi_dw_count[-1], psi_dw_count[-1]
 
 
 def run_companion_axion_simulation(
@@ -1046,3 +1113,320 @@ def run_companion_axion_simulation(
 
         # Yield fields
         yield phi_real_field, phi_imaginary_field, psi_real_field, psi_imaginary_field
+
+
+"""Tracking domain wall ratio"""
+
+
+def run_companion_axion_domain_wall_trials(
+    M: int,
+    N: int,
+    dx: float,
+    dt: float,
+    alpha: float,
+    eta: float,
+    era: float,
+    lam: float,
+    n: float,
+    n_prime: float,
+    m: float,
+    m_prime: float,
+    K: float,
+    kappa: float,
+    t0: float,
+    s0: float,
+    n_growth: float,
+    m_growth: float,
+    num_trials: int,
+    run_time: int | None,
+    seeds_given: list[int] | None,
+) -> tuple[list[float], list[float], list[int]]:
+    """Runs multiple companion axion simulations of different seeds and tracks the final domain wall ratio.
+
+    Parameters
+    ----------
+    M : int
+        the number of rows in the field to simulate.
+    N : int
+        the number of columns in the field to simulate.
+    dx : float
+        the spacing between grid points.
+    dt : float
+        the time interval between timesteps.
+    alpha : float
+        a 'trick' parameter necessary in the PRS algorithm. For an D-dimensional simulation, alpha = D.
+    eta : float
+        the location of the symmetry broken minima.
+    era : float
+        the cosmological era.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    n_prime : float
+        the first color anomaly coefficient of the psi field.
+    m : float
+        the second color anomaly coefficient of the phi field.
+    m_prime : float
+        the second color anomaly coefficient of the psi field.
+    K : float
+        the strength of the symmetry breaking compared to the standard potential.
+    kappa : float
+        the strength of the second axion potential term relative to the other axion potential.
+    t0 : float
+        the characteristic timescale of the standard axion potential's growth.
+    s0 : float
+        the characteristic timescale of the added companion axion potential's growth.
+    n_growth : float
+        the power law exponent of the strength growth of the first axion potential term.
+    m_growth : float
+        the power law exponent of the strength growth of the second axion potential term.
+    num_trials : int
+        the number of simulations to run.
+    run_time : int | None
+        the number of timesteps simulated.
+    seeds_given : list[int] | None
+        the seed used in generation of the initial state of the field.
+
+    Returns
+    -------
+    phi_dw_ratios : list[float]
+        the final domain wall ratio of the phi phase for each simulation.
+    psi_dw_ratios : list[float]
+        the final domain wall ratio of the psi phase for each simulation.
+    seeds_used : list[int]
+        the seeds used.
+    """
+    # If seeds are not given then randomly generate seeds
+    if seeds_given is None:
+        # Use a random seed to generate the seeds to be used
+        np.random.seed()
+        seeds = np.random.randint(
+            0, int(2**32 - 1), size=num_trials, dtype=np.uint32
+        ).tolist()
+    # Otherwise use the given seeds (up to `num_trials`)
+    else:
+        seeds = seeds_given[:num_trials]
+
+    # Set run time of simulation to light crossing time if no specific time is given
+    if run_time is None:
+        run_time = int(0.5 * N * dx / dt)
+
+    phi_dw_ratios = np.empty(num_trials)
+    phi_dw_ratios.fill(np.nan)
+    psi_dw_ratios = np.empty(num_trials)
+    psi_dw_ratios.fill(np.nan)
+
+    pbar = tqdm(total=num_trials * (run_time + 1), leave=False)
+
+    # Create minima
+    num_phi_minima = int(n)
+    phi_minima = np.zeros(num_phi_minima)
+    for phi_minima_idx in range(num_phi_minima):
+        value = phi_minima_idx * 2 * np.pi / num_phi_minima
+        if value > np.pi:
+            value -= 2 * np.pi
+        phi_minima[phi_minima_idx] = value
+
+    num_psi_minima = int(n_prime)
+    psi_minima = np.zeros(num_psi_minima)
+    for psi_minima_idx in range(num_psi_minima):
+        value = psi_minima_idx * 2 * np.pi / num_psi_minima
+        if value > np.pi:
+            value -= 2 * np.pi
+        psi_minima[psi_minima_idx] = value
+
+    w = np.sqrt(2 / lam) * np.pi
+
+    for seed_idx, seed in enumerate(seeds):
+        # Seed the RNG
+        np.random.seed(seed)
+
+        # Initialise phi
+        phi_real = 0.1 * np.random.normal(size=(M, N))
+        phidot_real = np.zeros(shape=(M, N))
+        phi_imaginary = 0.1 * np.random.normal(size=(M, N))
+        phidot_imaginary = np.zeros(shape=(M, N))
+        # Initialise psi
+        psi_real = 0.1 * np.random.normal(size=(M, N))
+        psidot_real = np.zeros(shape=(M, N))
+        psi_imaginary = 0.1 * np.random.normal(size=(M, N))
+        psidot_imaginary = np.zeros(shape=(M, N))
+
+        # Initialise acceleration
+        phidotdot_real = evolve_acceleration(
+            phi_real,
+            phidot_real,
+            potential_derivative_ca_phi1(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary,
+            phidot_imaginary,
+            potential_derivative_ca_phi2(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_real = evolve_acceleration(
+            psi_real,
+            psidot_real,
+            potential_derivative_ca_psi1(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_imaginary = evolve_acceleration(
+            psi_imaginary,
+            psidot_imaginary,
+            potential_derivative_ca_psi2(
+                phi_real,
+                phi_imaginary,
+                psi_real,
+                psi_imaginary,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Package fields
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_imaginary_field = Field(
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+        )
+        psi_real_field = Field(psi_real, psidot_real, psidotdot_real)
+        psi_imaginary_field = Field(
+            psi_imaginary, psidot_imaginary, psidotdot_imaginary
+        )
+        # Initialise simulation
+        simulation = run_companion_axion_simulation(
+            phi_real_field,
+            phi_imaginary_field,
+            psi_real_field,
+            psi_imaginary_field,
+            dx,
+            dt,
+            alpha,
+            eta,
+            era,
+            lam,
+            n,
+            n_prime,
+            m,
+            m_prime,
+            K,
+            kappa,
+            t0,
+            s0,
+            n_growth,
+            m_growth,
+            run_time,
+        )
+
+        # Run simulation to completion
+        for idx, (
+            phi_real_field,
+            phi_imaginary_field,
+            psi_real_field,
+            psi_imaginary_field,
+        ) in enumerate(simulation):
+            # Update progress bar
+            pbar.update(1)
+        # Unpack
+        phi_real = phi_real_field.value
+        phi_imaginary = phi_imaginary_field.value
+        psi_real = psi_real_field.value
+        psi_imaginary = psi_imaginary_field.value
+        # Phase
+        phi_phase = np.arctan2(phi_imaginary, phi_real)
+        psi_phase = np.arctan2(psi_imaginary, psi_real)
+        # Round field
+        phi_rounded_field = periodic_round_field_to_minima(phi_phase, phi_minima)
+        psi_rounded_field = periodic_round_field_to_minima(psi_phase, psi_minima)
+        # Identify domain walls
+        phi_domain_walls = find_domain_walls_with_width_multidomain(
+            phi_rounded_field, w
+        )
+        psi_domain_walls = find_domain_walls_with_width_multidomain(
+            psi_rounded_field, w
+        )
+        # Count domain walls
+        phi_dw_ratios[seed_idx] = np.count_nonzero(phi_domain_walls) / (M * N)
+        psi_dw_ratios[seed_idx] = np.count_nonzero(psi_domain_walls) / (M * N)
+    pbar.close()
+
+    return phi_dw_ratios.tolist(), psi_dw_ratios.tolist(), seeds

@@ -1,0 +1,33 @@
+Ask about how to determine if a simulation has dispersing domain walls.
+- Currently using the domain wall ratio of the last frame.
+    - Domain wall ratio is variable though and it is not necessarily monotonic.
+    - i.e. could just be low right now but could increase later
+- Maybe use the average of the last 30%? but how to determine how many values? The simulation could have just dispersed.
+
+- Show off single and companion axion domain wall count plots.
+
+- How do we determine domain wall dispersal for companion axion if there are two phases to worry about?
+- Want complete dispersal? i.e. tag each phase has having dispersed or not and then rank the parameters as being more dispersive
+or not.
+
+- Does it make sense to get the average domain wall ratio by iterating over many seeds and then taking the mean?
+    - Maybe for one seed it disperses but another it doesn't and so the mean is now skewed by the different behaviour.
+
+- When the field is dispersed, it hovers around a single value, could maybe take the standard deviation of the field and then
+threshold?
+
+- Can't run this analysis on single axion and companion axion in a reasonable amount of time. Need to implement this in the C++
+version probably. Could use multiprocessing to speed it up but it would take all of the CPU.
+
+- Vary K for single axion.
+- Smaller value of K for companion axion model to limit artifacts
+
+
+Instead of a plot of domain wall ratio vs some parameter, plot the domain wall ratio vs time and have different plot lines
+for each parameter. Each model/set of parameters would be a range to signify the variability of the seeds. The general workflow
+is like this:
+save all plot data
+- get all minimum/maximum values at each time OR
+    - use percentiles
+- then use fill_between to fill the region between the two values
+- plot a sample trajectory to get an idea of a typical path

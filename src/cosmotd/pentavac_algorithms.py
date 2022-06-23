@@ -46,8 +46,17 @@ def find_closest_vacua(phi_phase: float, psi_phase: float, epsilon: float) -> in
     best_fit = (-1, np.infty)
 
     for idx, (phi_minimum, psi_minimum) in enumerate(minima):
-        # Calculate Euclidean distance between field phase and current vacuum
-        error = (phi_phase - phi_minimum) ** 2 + (psi_phase - psi_minimum) ** 2
+        # Calculate absolute distances
+        phi_error = np.abs(phi_phase - phi_minimum)
+        psi_error = np.abs(psi_phase - psi_minimum)
+        # Distances larger than pi must be wrapped back around
+        if phi_error > np.pi:
+            phi_error = 2 * np.pi - phi_error
+        if psi_error > np.pi:
+            psi_error = 2 * np.pi - psi_error
+        # Distances from both phases are added
+        error = phi_error + psi_error
+        # The index of the minima closest to both are selected
         if error < best_fit[1]:
             best_fit = (idx, error)
 
@@ -55,7 +64,9 @@ def find_closest_vacua(phi_phase: float, psi_phase: float, epsilon: float) -> in
 
 
 @njit
-def color_vacua(phi: npt.NDArray[np.float32], psi: npt.NDArray[np.float32], epsilon: float) -> npt.NDArray[np.float32]:
+def color_vacua(
+    phi: npt.NDArray[np.float32], psi: npt.NDArray[np.float32], epsilon: float
+) -> npt.NDArray[np.float32]:
     """Color the field into five vacua of the pentavac model. Each point in the field is given a discrete integer [0, 4] according
     to the vacuum it is deemed closest to.
 
