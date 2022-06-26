@@ -18,7 +18,9 @@ class MplMp4Plotter(MplPngPlotter):
     together into a mp4 in a folder called `video_cache`.
     """
 
-    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
+    def __init__(
+        self, settings: PlotterConfig, progress_callback: Callable[[int], None]
+    ):
         super().__init__(settings, progress_callback)
 
     def close(self):
@@ -30,7 +32,7 @@ class MplMp4Plotter(MplPngPlotter):
         (
             ffmpeg.input(
                 input_file_template,
-                framerate=20,
+                framerate=120,
                 y=None,
             )
             .output(output_file, crf=25, pix_fmt="yuv420p")

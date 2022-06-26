@@ -184,6 +184,21 @@ class SetAutoscaleCommand(NamedTuple):
     axis_index: int
 
 
+class RemoveAxisTicksCommand(NamedTuple):
+    """A structure that contains the necessary information to remove axis ticks.
+
+    Attributes
+    ----------
+    axis : str
+        the axis to operate on. Allowed choices are "both", "x" and "y".
+    axis_index : int
+        the index of the set of axes to operate on.
+    """
+
+    axis: str
+    axis_index: int
+
+
 class EndFrameCommand(NamedTuple):
     """A structure used to signify the end of a frame. It contains the frame number of the ended frame.
 
@@ -218,7 +233,9 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         settings.figsize[1] / dpi,
     )
     fig = plt.figure(figsize=figsize, dpi=dpi)
-    fig.suptitle(settings.title)
+    # Add title to whole figure
+    if settings.title_flag:
+        fig.suptitle(settings.title)
 
     # Make sure that the number of plots and given settings is equal
     num_plots = settings.nrows * settings.ncols
@@ -259,13 +276,14 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                     extent=command.extents,
                     rasterized=True,
                 )
-                # Create colorbar
-                fig.colorbar(
-                    images[axis_index][image_index],
-                    ax=axes[axis_index],
-                    fraction=0.046,
-                    pad=0.04,
-                )
+                if image_config.colorbar_flag:
+                    # Create colorbar
+                    fig.colorbar(
+                        images[axis_index][image_index],
+                        ax=axes[axis_index],
+                        fraction=0.046,
+                        pad=0.04,
+                    )
             # Otherwise set the data of the image to the new data
             else:
                 images[axis_index][image_index].set_data(data)
@@ -308,7 +326,7 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
             else:
                 # Package x and y data into single 2D array
                 packaged_data = np.column_stack((xdata, ydata))
-                scatters[axis_index][scatter_index].set_offets(packaged_data)
+                scatters[axis_index][scatter_index].set_offsets(packaged_data)
         # Set title
         elif isinstance(command, SetTitleCommand):
             axes[command.axis_index].set_title(command.title)
@@ -326,6 +344,14 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         # Set autoscale
         elif isinstance(command, SetAutoscaleCommand):
             axes[command.axis_index].autoscale(enable=command.enable, axis=command.axis)
+        # Remove axis ticks
+        elif isinstance(command, RemoveAxisTicksCommand):
+            axis = command.axis
+            axis_index = command.axis_index
+            if axis == "both" or axis == "x":
+                axes[axis_index].get_xaxis().set_ticks([])
+            if axis == "both" or axis == "y":
+                axes[axis_index].get_yaxis().set_ticks([])
         # End frame
         elif isinstance(command, EndFrameCommand):
             # Save as png
@@ -389,6 +415,9 @@ class MplMultiPlotter(Plotter):
         # Only send plotting task every `FRAMES_IN_FLIGHT` frames
         if self._count % FRAMES_IN_FLIGHT == 0 and self._count > 0:
             self._submit_command_queue()
+
+        # plotting_job(self._count, self._settings, self._commands)
+
         # Increment count
         self._count += 1
 
@@ -406,7 +435,7 @@ class MplMultiPlotter(Plotter):
         (
             ffmpeg.input(
                 input_file_template,
-                framerate=20,
+                framerate=120,
                 y=None,
             )
             .output(output_file, crf=25, pix_fmt="yuv420p")
@@ -477,6 +506,9 @@ class MplMultiPlotter(Plotter):
 
     def set_autoscale(self, enable: bool, axis: str, axis_index: int):
         self._commands.append(SetAutoscaleCommand(enable, axis, axis_index))
+
+    def remove_axis_ticks(self, axis: str, axis_index: int):
+        self._commands.append(RemoveAxisTicksCommand(axis, axis_index))
 
     def _submit_command_queue(self):
         """Submits the command queue to a process in the process pool to be executed."""

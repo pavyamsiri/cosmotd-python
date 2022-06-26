@@ -4,6 +4,7 @@ from collections.abc import Generator
 # External modules
 import numpy as np
 from numpy import typing as npt
+from pygments import highlight
 from tqdm import tqdm
 from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
 
@@ -701,14 +702,20 @@ def plot_companion_axion_simulation(
         PlotterConfig(
             title="Companion axion simulation",
             file_name="companion_axion",
-            nrows=2,
+            nrows=1,
             ncols=2,
-            figsize=(640, 480),
+            figsize=(720, 480),
+            title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    draw_settings = ImageConfig(
+        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+    )
+    highlight_settings = ImageConfig(
+        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False
+    )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
     )
@@ -783,66 +790,125 @@ def plot_companion_axion_simulation(
         phi_dw_count[idx] = np.count_nonzero(phi_domain_walls) / (M * N)
         psi_dw_count[idx] = np.count_nonzero(psi_domain_walls) / (M * N)
 
+        phi_domain_walls_masked = np.ma.masked_where(
+            np.isclose(phi_domain_walls, 0), phi_domain_walls
+        )
+        phi_rounded_field_masked = np.ma.masked_where(
+            np.abs(phi_domain_walls) > 0, rounded_phi_phase
+        )
+
+        psi_domain_walls_masked = np.ma.masked_where(
+            np.isclose(psi_domain_walls, 0), psi_domain_walls
+        )
+        psi_rounded_field_masked = np.ma.masked_where(
+            np.abs(psi_domain_walls) > 0, rounded_psi_phase
+        )
+
         # Plot
         plot_api.reset()
         # phi phase (raw)
-        # plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
-        # phi phase (rounded)
-        plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
-        plot_api.set_title(r"$\arg{\phi}$", 0)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # # phi strings
-        # plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
-        # plot_api.draw_scatter(
-        #     dx * positive_phi_strings[1],
-        #     dx * positive_phi_strings[0],
-        #     1,
-        #     0,
-        #     positive_string_settings,
-        # )
-        # plot_api.draw_scatter(
-        #     dx * negative_phi_strings[1],
-        #     dx * negative_phi_strings[0],
-        #     1,
-        #     1,
-        #     negative_string_settings,
-        # )
-        # plot_api.set_title(r"$\phi$ Strings", 1)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        # Phi phase domain wall count
-        plot_api.draw_plot(run_time_x_axis, phi_dw_count, 1, 0, line_settings)
-        plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 1)
-        plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-        plot_api.set_title("Phi Domain wall count ratio", 1)
-        # psi phase (raw)
+        plot_api.draw_image(
+            rounded_phi_phase, image_extents, 0, 0, draw_settings
+        )
+        plot_api.draw_image(
+            phi_domain_walls_masked, image_extents, 0, 1, highlight_settings
+        )
+        plot_api.remove_axis_ticks("both", 0)
+        plot_api.set_title(r"$\theta$", 0)
+        plot_api.draw_scatter(
+            dx * positive_phi_strings[1],
+            dx * positive_phi_strings[0],
+            0,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            dx * negative_phi_strings[1],
+            dx * negative_phi_strings[0],
+            0,
+            1,
+            negative_string_settings,
+        )
+
+        plot_api.draw_image(
+            rounded_psi_phase, image_extents, 1, 0, draw_settings
+        )
+        plot_api.draw_image(
+            psi_domain_walls_masked, image_extents, 1, 1, highlight_settings
+        )
+        plot_api.remove_axis_ticks("both", 1)
+        plot_api.set_title(r"$\theta'$", 1)
+        plot_api.draw_scatter(
+            dx * positive_psi_strings[1],
+            dx * positive_psi_strings[0],
+            1,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            dx * negative_psi_strings[1],
+            dx * negative_psi_strings[0],
+            1,
+            1,
+            negative_string_settings,
+        )
+
+        # # # phi strings
+        # # plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
+        # # plot_api.draw_scatter(
+        # #     dx * positive_phi_strings[1],
+        # #     dx * positive_phi_strings[0],
+        # #     1,
+        # #     0,
+        # #     positive_string_settings,
+        # # )
+        # # plot_api.draw_scatter(
+        # #     dx * negative_phi_strings[1],
+        # #     dx * negative_phi_strings[0],
+        # #     1,
+        # #     1,
+        # #     negative_string_settings,
+        # # )
+        # # plot_api.set_title(r"$\phi$ Strings", 1)
+        # # plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        # # Phi phase domain wall count
+        # plot_api.draw_plot(run_time_x_axis, phi_dw_count, 2, 0, line_settings)
+        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 2)
+        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 2)
+        # plot_api.set_title(r"$\theta'$ domain wall count ratio", 1)
+        # plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
+        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
+        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        # plot_api.set_title(r"$\theta'$ domain wall count ratio", 3)
+        # # psi phase (raw)
+        # # plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
+        # # psi phase (rounded)
         # plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
-        # psi phase (rounded)
-        plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
-        plot_api.set_title(r"$\arg{\psi}$", 2)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 2)
-        # # psi strings
-        # plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
-        # plot_api.draw_scatter(
-        #     dx * positive_psi_strings[1],
-        #     dx * positive_psi_strings[0],
-        #     3,
-        #     0,
-        #     positive_string_settings,
-        # )
-        # plot_api.draw_scatter(
-        #     dx * negative_psi_strings[1],
-        #     dx * negative_psi_strings[0],
-        #     3,
-        #     1,
-        #     negative_string_settings,
-        # )
-        # plot_api.set_title(r"$\psi$ Strings", 3)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 3)
-        # Psi phase domain wall count
-        plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
-        plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
-        plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
-        plot_api.set_title("Psi Domain wall count ratio", 3)
+        # plot_api.set_title(r"$\arg{\psi}$", 2)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 2)
+        # # # psi strings
+        # # plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
+        # # plot_api.draw_scatter(
+        # #     dx * positive_psi_strings[1],
+        # #     dx * positive_psi_strings[0],
+        # #     3,
+        # #     0,
+        # #     positive_string_settings,
+        # # )
+        # # plot_api.draw_scatter(
+        # #     dx * negative_psi_strings[1],
+        # #     dx * negative_psi_strings[0],
+        # #     3,
+        # #     1,
+        # #     negative_string_settings,
+        # # )
+        # # plot_api.set_title(r"$\psi$ Strings", 3)
+        # # plot_api.set_axes_labels(r"$x$", r"$y$", 3)
+        # # Psi phase domain wall count
+        # plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
+        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
+        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        # plot_api.set_title("Psi Domain wall count ratio", 3)
         plot_api.flush()
     plot_api.close()
     pbar.close()

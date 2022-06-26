@@ -17,7 +17,9 @@ class Plotter:
     """An interface class that serves as an interface for different plotting backends. It can be used on its own if plotting is
     to be turned off."""
 
-    def __init__(self, settings: PlotterConfig, progress_callback: Callable[[int], None]):
+    def __init__(
+        self, settings: PlotterConfig, progress_callback: Callable[[int], None]
+    ):
         """Constructs a plotter configured by the given settings.
 
         Parameters
@@ -194,6 +196,18 @@ class Plotter:
         ----------
         enable : bool
             if `True` will turn on autoscale and if `False` will turn off autoscale.
+        axis : str
+            the axis to operate on. Allowed choices are "both", "x" and "y".
+        axis_index : int
+            the index of the set of axes to operate on.
+        """
+        pass
+
+    def remove_axis_ticks(self, axis: str, axis_index: int):
+        """Removes axis ticks for an axis.
+
+        Parameters
+        ----------
         axis : str
             the axis to operate on. Allowed choices are "both", "x" and "y".
         axis_index : int

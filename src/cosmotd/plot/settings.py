@@ -17,6 +17,8 @@ class PlotterConfig(NamedTuple):
         the number of columns to plot.
     figsize : tuple[float, float]
         the size of the figure to plot to in pixels.
+    title_flag : bool
+        if `True` a title will be added to the top of the figure.
     """
 
     title: str
@@ -24,6 +26,7 @@ class PlotterConfig(NamedTuple):
     nrows: int
     ncols: int
     figsize: tuple[float, float]
+    title_flag: bool
 
 
 class ImageConfig(NamedTuple):
@@ -37,11 +40,14 @@ class ImageConfig(NamedTuple):
         the maximum value covered by color maps.
     cmap : str
         the color map to be used.
+    colorbar_flag : bool
+        if `True` a colorbar will be added.
     """
 
     vmin: float
     vmax: float
     cmap: str
+    colorbar_flag: bool
 
 
 class LineConfig(NamedTuple):

@@ -301,12 +301,17 @@ def plot_single_axion_simulation(
             # ncols=2,
             ncols=1,
             figsize=(640, 480),
+            title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
+    draw_settings = ImageConfig(
+        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+    )
+    highlight_settings = ImageConfig(
+        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False
+    )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
     )
@@ -322,12 +327,19 @@ def plot_single_axion_simulation(
     dw_count = np.empty(simulation_end)
     dw_count.fill(np.nan)
 
-    minima = np.zeros(n)
-    for minima_idx in range(n):
-        value = minima_idx * 2 * np.pi / n
-        if value > np.pi:
-            value -= 2 * np.pi
-        minima[minima_idx] = value
+    # Special case for n = 1
+    if n == 1:
+        minima = np.zeros(3)
+        minima[0] = 0.0
+        minima[1] = np.pi / 2
+        minima[2] = -np.pi / 2
+    else:
+        minima = np.zeros(n)
+        for minima_idx in range(n):
+            value = minima_idx * 2 * np.pi / n
+            if value > np.pi:
+                value -= 2 * np.pi
+            minima[minima_idx] = value
 
     for idx, (phi_real_field, phi_imaginary_field) in enumerate(simulation):
         # Unpack
@@ -359,10 +371,29 @@ def plot_single_axion_simulation(
         plot_api.reset()
 
         # Draw just the phase
-        plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
-        plot_api.set_title("Axion field phase", 0)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        plot_api.set_axes_limits(0, dx * M, 0, dx * N, 0)
+        plot_api.draw_image(rounded_field_masked, image_extents, 0, 0, draw_settings)
+        plot_api.draw_image(
+            domain_walls_masked, image_extents, 0, 1, highlight_settings
+        )
+        plot_api.remove_axis_ticks("both", 0)
+        plot_api.draw_scatter(
+            dx * positive_strings[1],
+            dx * positive_strings[0],
+            0,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            dx * negative_strings[1],
+            dx * negative_strings[0],
+            0,
+            1,
+            negative_string_settings,
+        )
+
+        # plot_api.set_title("Axion field phase", 0)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 0)
+        # plot_api.set_axes_limits(0, dx * M, 0, dx * N, 0)
 
         # # Highlighting strings
         # plot_api.draw_image(rounded_field, image_extents, 0, 0, draw_settings)

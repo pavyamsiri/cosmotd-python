@@ -27,7 +27,9 @@ class MplPlotter(Plotter):
             settings.figsize[1] / dpi,
         )
         self._fig = plt.figure(figsize=figsize, dpi=dpi)
-        self._fig.suptitle(settings.title)
+        # Add title to whole figure
+        if settings.title_flag:
+            self._fig.suptitle(settings.title)
         # File name
         self._file_name = settings.file_name
 
@@ -88,12 +90,13 @@ class MplPlotter(Plotter):
             # calling update when the image gets changed despite it being static. Could create a function that creates a colorbar
             # for a static image that is invisible.
             # Create colorbar
-            self._fig.colorbar(
-                self._images[axis_index][image_index],
-                ax=self._axes[axis_index],
-                fraction=0.046,
-                pad=0.04,
-            )
+            if image_config.colorbar_flag:
+                self._fig.colorbar(
+                    self._images[axis_index][image_index],
+                    ax=self._axes[axis_index],
+                    fraction=0.046,
+                    pad=0.04,
+                )
         # Otherwise set the data of the image to the new data
         else:
             self._images[axis_index][image_index].set_data(data)
@@ -169,3 +172,9 @@ class MplPlotter(Plotter):
 
     def set_autoscale(self, enable: bool, axis: str, axis_index: int):
         self._axes[axis_index].autoscale(enable, axis)
+
+    def remove_axis_ticks(self, axis: str, axis_index: int):
+        if axis == "both" or axis == "x":
+            self._axes[axis_index].get_xaxis().set_ticks([])
+        if axis == "both" or axis == "y":
+            self._axes[axis_index].get_yaxis().set_ticks([])
