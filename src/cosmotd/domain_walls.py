@@ -177,12 +177,13 @@ def plot_domain_wall_simulation(
             nrows=2,
             ncols=2,
             figsize=(1.5 * 640, 1.5 * 480),
+            title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis")
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic")
+    draw_settings = ImageConfig(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis", colorbar_flag=True)
+    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True)
     line_settings = LineConfig(color="#1f77b4", linestyle="-")
     image_extents = (0, dx * M, 0, dx * N)
 

@@ -2,6 +2,7 @@
 
 # Standard modules
 from collections.abc import Generator
+from turtle import color
 
 # External modules
 import numpy as np
@@ -189,11 +190,14 @@ def plot_cosmic_string_simulation(
             nrows=1,
             ncols=2,
             figsize=(640, 480),
+            title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted")
+    draw_settings = ImageConfig(
+        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+    )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
     )
