@@ -18,7 +18,7 @@ class Plotter:
     to be turned off."""
 
     def __init__(
-        self, settings: PlotterConfig, progress_callback: Callable[[int], None]
+        self, settings: PlotterConfig, progress_callback: Callable[[int], bool | None]
     ):
         """Constructs a plotter configured by the given settings.
 
@@ -26,7 +26,7 @@ class Plotter:
         ----------
         settings : PlotterConfig
             settings used to configure plotting.
-        progress_callback : Callable[[int], None]
+        progress_callback : Callable[[int], bool | None]
             the callback used to update progress bars.
         """
         # Store progress callback
@@ -198,6 +198,30 @@ class Plotter:
             if `True` will turn on autoscale and if `False` will turn off autoscale.
         axis : str
             the axis to operate on. Allowed choices are "both", "x" and "y".
+        axis_index : int
+            the index of the set of axes to operate on.
+        """
+        pass
+
+    def set_x_scale(self, scale: str, axis_index: int):
+        """Sets the x-axis scale.
+
+        Parameters
+        ----------
+        scale : str
+            the scale to set to. Allowed choices are "linear", "log", "symlog", "logit", etc.
+        axis_index : int
+            the index of the set of axes to operate on.
+        """
+        pass
+
+    def set_y_scale(self, scale: str, axis_index: int):
+        """Sets the y-axis scale.
+
+        Parameters
+        ----------
+        scale : str
+            the scale to set to. Allowed choices are "linear", "log", "symlog", "logit", etc.
         axis_index : int
             the index of the set of axes to operate on.
         """

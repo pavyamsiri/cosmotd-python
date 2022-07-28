@@ -184,6 +184,36 @@ class SetAutoscaleCommand(NamedTuple):
     axis_index: int
 
 
+class SetXScaleCommand(NamedTuple):
+    """A structure that contains the necessary information to set the scale of the x-axis.
+
+    Attributes
+    ----------
+    scale : str
+        the scale to set to. Allowed choices are "linear", "log", "symlog", "logit", etc.
+    axis_index : int
+        the index of the set of axes to operate on.
+    """
+
+    scale: str
+    axis_index: int
+
+
+class SetYScaleCommand(NamedTuple):
+    """A structure that contains the necessary information to set the scale of the y-axis.
+
+    Attributes
+    ----------
+    scale : str
+        the scale to set to. Allowed choices are "linear", "log", "symlog", "logit", etc.
+    axis_index : int
+        the index of the set of axes to operate on.
+    """
+
+    scale: str
+    axis_index: int
+
+
 class RemoveAxisTicksCommand(NamedTuple):
     """A structure that contains the necessary information to remove axis ticks.
 
@@ -344,6 +374,12 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
         # Set autoscale
         elif isinstance(command, SetAutoscaleCommand):
             axes[command.axis_index].autoscale(enable=command.enable, axis=command.axis)
+        # Set x-axis scale
+        elif isinstance(command, SetXScaleCommand):
+            axes[command.axis_index].set_xscale(command.scale)
+        # Set y-axis scale
+        elif isinstance(command, SetYScaleCommand):
+            axes[command.axis_index].set_yscale(command.scale)
         # Remove axis ticks
         elif isinstance(command, RemoveAxisTicksCommand):
             axis = command.axis
@@ -506,6 +542,12 @@ class MplMultiPlotter(Plotter):
 
     def set_autoscale(self, enable: bool, axis: str, axis_index: int):
         self._commands.append(SetAutoscaleCommand(enable, axis, axis_index))
+
+    def set_x_scale(self, scale: str, axis_index: int):
+        self._commands.append(SetXScaleCommand(scale, axis_index))
+
+    def set_y_scale(self, scale: str, axis_index: int):
+        self._commands.append(SetYScaleCommand(scale, axis_index))
 
     def remove_axis_ticks(self, axis: str, axis_index: int):
         self._commands.append(RemoveAxisTicksCommand(axis, axis_index))

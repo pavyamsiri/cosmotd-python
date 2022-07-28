@@ -10,7 +10,7 @@ import scipy.signal
 """Laplacian"""
 
 
-# NOTE: The iterative JIT-compiled version of the Laplacian 2D function is faster than the matrix version by 2x, likely due to
+# INFO: The iterative JIT-compiled version of the Laplacian 2D function is faster than the matrix version by 2x, likely due to
 # matrices having to be allocated in the np.roll function.
 @njit
 def laplacian2D_iterative(
@@ -44,14 +44,23 @@ def laplacian2D_iterative(
                 1
                 / (12.0 * dx**2.0)
                 * (
+                    # Down two
                     -phi[np.mod(i + 2, M), j]
+                    # Down one
                     + 16.0 * phi[np.mod(i + 1, M), j]
-                    + 16.0 * phi[i - 1, j]
-                    - phi[i - 2, j]
+                    # Up one
+                    + 16.0 * phi[np.mod(i - 1, M), j]
+                    # Up two
+                    - phi[np.mod(i - 2, M), j]
+                    # Right two
                     - phi[i, np.mod(j + 2, N)]
+                    # Right one
                     + 16.0 * phi[i, np.mod(j + 1, N)]
-                    + 16.0 * phi[i, j - 1]
-                    - phi[i, j - 2]
+                    # Left one
+                    + 16.0 * phi[i, np.mod(j - 1, N)]
+                    # Left two
+                    - phi[i, np.mod(j - 2, N)]
+                    # Central value
                     - 60.0 * phi[i, j]
                 )
             )

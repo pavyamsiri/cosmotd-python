@@ -298,8 +298,7 @@ def plot_single_axion_simulation(
             title="Single Axion simulation",
             file_name="single_axion",
             nrows=1,
-            # ncols=2,
-            ncols=1,
+            ncols=2,
             figsize=(640, 480),
             title_flag=False,
         ),
@@ -326,6 +325,8 @@ def plot_single_axion_simulation(
     # Domain wall count
     dw_count = np.empty(simulation_end)
     dw_count.fill(np.nan)
+    string_count = np.empty(simulation_end)
+    string_count.fill(np.nan)
 
     # Special case for n = 1
     if n == 1:
@@ -350,7 +351,10 @@ def plot_single_axion_simulation(
 
         # Identify strings
         strings = find_cosmic_strings_brute_force_small(phi_real, phi_imaginary)
+        # Count strings
+        string_count[idx] = np.count_nonzero(strings) / (M * N)
         # Get positions of strings to plot in scatter
+        # INFO: the 0-th index gives the y positions, and the 1st index gives the x positions
         positive_strings = np.nonzero(strings > 0)
         negative_strings = np.nonzero(strings < 0)
         # Color field
@@ -390,42 +394,13 @@ def plot_single_axion_simulation(
             1,
             negative_string_settings,
         )
+        plot_api.set_title("Phase", 0)
 
-        # plot_api.set_title("Axion field phase", 0)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # plot_api.set_axes_limits(0, dx * M, 0, dx * N, 0)
-
-        # # Highlighting strings
-        # plot_api.draw_image(rounded_field, image_extents, 0, 0, draw_settings)
-        # # plot_api.draw_scatter(
-        # #     dx * positive_strings[1],
-        # #     dx * positive_strings[0],
-        # #     0,
-        # #     0,
-        # #     positive_string_settings,
-        # # )
-        # # plot_api.draw_scatter(
-        # #     dx * negative_strings[1],
-        # #     dx * negative_strings[0],
-        # #     0,
-        # #     1,
-        # #     negative_string_settings,
-        # # )
-        # plot_api.set_title(r"Rounded Field", 0)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # plot_api.set_axes_limits(0, dx * M, 0, dx * N, 0)
-        # # Rounded field with domain walls
-        # plot_api.draw_image(rounded_field_masked, image_extents, 0, 0, draw_settings)
-        # plot_api.draw_image(
-        #     domain_walls_masked, image_extents, 0, 1, highlight_settings
-        # )
-        # plot_api.set_title(r"Rounded field with Domain Walls", 0)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # # Wall count
-        # plot_api.draw_plot(run_time_x_axis, dw_count, 1, 0, line_settings)
-        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 1)
-        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-        # plot_api.set_title("Domain wall count ratio", 1)
+        # String count
+        plot_api.draw_plot(run_time_x_axis, string_count, 1, 0, line_settings)
+        plot_api.set_axes_labels(r"Time", r"Cosmic string count ratio", 1)
+        plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        plot_api.set_title("Cosmic string count ratio", 1)
         plot_api.flush()
     plot_api.close()
     pbar.close()

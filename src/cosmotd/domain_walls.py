@@ -77,7 +77,7 @@ def plot_domain_wall_simulation(
     alpha: float,
     eta: float,
     era: float,
-    w: float,
+    lam: float,
     plot_backend: type[Plotter],
     run_time: int | None,
     file_name: str | None,
@@ -101,8 +101,8 @@ def plot_domain_wall_simulation(
         the location of the symmetry broken minima.
     era : float
         the cosmological era.
-    w : float
-        the width of the domain walls.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
     plot_backend : type[Plotter]
         the plotting backend to use.
     run_time : int | None
@@ -118,8 +118,8 @@ def plot_domain_wall_simulation(
         If the given data file is missing fields that are needed to run the simulation.
     """
 
-    # Convert wall width to lambda
-    lam = 2 * np.pi**2 / w**2
+    # Convert lambda to wall width
+    w = np.sqrt(2 / lam) * np.pi
 
     # Load from file if given
     if file_name is not None:
@@ -174,16 +174,20 @@ def plot_domain_wall_simulation(
         PlotterConfig(
             title="Domain wall simulation",
             file_name="domain_walls",
-            nrows=2,
-            ncols=2,
-            figsize=(1.5 * 640, 1.5 * 480),
+            nrows=1,
+            ncols=1,
+            figsize=(640, 480),
             title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis", colorbar_flag=True)
-    highlight_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True)
+    draw_settings = ImageConfig(
+        vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis", colorbar_flag=True
+    )
+    highlight_settings = ImageConfig(
+        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True
+    )
     line_settings = LineConfig(color="#1f77b4", linestyle="-")
     image_extents = (0, dx * M, 0, dx * N)
 
@@ -263,78 +267,6 @@ def plot_domain_wall_simulation(
         plot_api.reset()
         # Real field
         plot_api.draw_image(phi, image_extents, 0, 0, draw_settings)
-        plot_api.set_title(r"$\phi$", 0)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # Highlight walls
-        plot_api.draw_image(
-            domain_walls_masked, image_extents, 1, 0, highlight_settings
-        )
-        plot_api.set_title(r"Domain walls", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        # Plot energy
-        plot_api.draw_plot(
-            run_time_x_axis, domain_wall_energy_ratio, 2, 0, line_settings
-        )
-        plot_api.draw_plot(
-            run_time_x_axis,
-            dw_kinetic_energy_ratio,
-            2,
-            1,
-            LineConfig(color="tab:orange", linestyle="--"),
-        )
-        plot_api.draw_plot(
-            run_time_x_axis,
-            dw_gradient_energy_ratio,
-            2,
-            2,
-            LineConfig(color="tab:green", linestyle="--"),
-        )
-        plot_api.draw_plot(
-            run_time_x_axis,
-            dw_potential_energy_ratio,
-            2,
-            3,
-            LineConfig(color="tab:red", linestyle="--"),
-        )
-        plot_api.draw_plot(
-            run_time_x_axis,
-            dw_count,
-            2,
-            4,
-            LineConfig(color="tab:purple", linestyle="--"),
-        )
-        plot_api.set_title("Domain wall energy", 2)
-        plot_api.set_axes_labels(r"Iteration $i$", r"$\frac{H_{DW}}{H}$", 2)
-        plot_api.set_axes_limits(0, simulation_end, -0.2, 1.2, 2)
-        plot_api.set_legend(
-            [
-                "Total energy",
-                "Kinetic energy",
-                "Gradient energy",
-                "Potential energy",
-                "Domain wall count",
-            ],
-            2,
-        )
-        plot_api.draw_plot(
-            run_time_x_axis,
-            total_energy,
-            3,
-            0,
-            LineConfig(color="black", linestyle="-"),
-        )
-        plot_api.draw_plot(
-            run_time_x_axis, dw_energy, 3, 1, LineConfig(color="red", linestyle="--")
-        )
-        plot_api.draw_plot(
-            run_time_x_axis, ndw_energy, 3, 2, LineConfig(color="blue", linestyle="--")
-        )
-        plot_api.set_title("Absolute Energy", 3)
-        plot_api.set_axes_labels(r"Iteration $i$", r"Energy (a.u.)", 3)
-        plot_api.set_legend(
-            ["Total energy", "Domain wall energy", "Non-domain wall energy"], 3
-        )
-        plot_api.set_axes_limits(0, simulation_end, 0, None, 3)
         plot_api.flush()
     plot_api.close()
     pbar.close()
@@ -349,6 +281,7 @@ def run_domain_wall_simulation(
     era: float,
     lam: float,
     run_time: int,
+    initial_time: float | None = None,
 ) -> Generator[Field, None, None]:
     """Runs a domain wall simulation in two dimensions.
 
@@ -376,8 +309,11 @@ def run_domain_wall_simulation(
     phi_field : Field
         the real scalar field phi.
     """
-    # Clock
-    t = 1.0 * dt
+    if initial_time is None:
+        # Clock
+        t = 1.0 * dt
+    else:
+        t = initial_time
 
     # Yield the initial condition
     yield phi_field
@@ -424,7 +360,7 @@ def run_domain_wall_ratio_trials(
     alpha: float,
     eta: float,
     era: float,
-    w: float,
+    lam: float,
     num_trials: int,
     run_time: int | None,
     seeds_given: list[int] | None,
@@ -447,8 +383,8 @@ def run_domain_wall_ratio_trials(
         the location of the symmetry broken minima.
     era : float
         the cosmological era.
-    w : float
-        the width of the domain walls.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
     num_trials : int
         the number of simulations to run.
     run_time : int | None
@@ -464,8 +400,8 @@ def run_domain_wall_ratio_trials(
         the seeds used.
     """
 
-    # Convert wall width to lambda
-    lam = 2 * np.pi**2 / w**2
+    # Convert lambda to wall width
+    w = np.sqrt(2 / lam) * np.pi
 
     # If seeds are not given then randomly generate seeds
     if seeds_given is None:

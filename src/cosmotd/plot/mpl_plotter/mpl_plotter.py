@@ -173,6 +173,12 @@ class MplPlotter(Plotter):
     def set_autoscale(self, enable: bool, axis: str, axis_index: int):
         self._axes[axis_index].autoscale(enable, axis)
 
+    def set_x_scale(self, scale: str, axis_index: int):
+        self._axes[axis_index].set_xscale(scale)
+
+    def set_y_scale(self, scale: str, axis_index: int):
+        self._axes[axis_index].set_yscale(scale)
+
     def remove_axis_ticks(self, axis: str, axis_index: int):
         if axis == "both" or axis == "x":
             self._axes[axis_index].get_xaxis().set_ticks([])

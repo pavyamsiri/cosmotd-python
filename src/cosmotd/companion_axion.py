@@ -702,7 +702,7 @@ def plot_companion_axion_simulation(
         PlotterConfig(
             title="Companion axion simulation",
             file_name="companion_axion",
-            nrows=1,
+            nrows=2,
             ncols=2,
             figsize=(720, 480),
             title_flag=False,
@@ -733,24 +733,40 @@ def plot_companion_axion_simulation(
     # Domain wall count
     phi_dw_count = np.empty(simulation_end)
     phi_dw_count.fill(np.nan)
+    phi_string_count = np.empty(simulation_end)
+    phi_string_count.fill(np.nan)
     psi_dw_count = np.empty(simulation_end)
     psi_dw_count.fill(np.nan)
+    psi_string_count = np.empty(simulation_end)
+    psi_string_count.fill(np.nan)
 
     num_phi_minima = int(n)
-    phi_minima = np.zeros(num_phi_minima)
-    for phi_minima_idx in range(num_phi_minima):
-        value = phi_minima_idx * 2 * np.pi / num_phi_minima
-        if value > np.pi:
-            value -= 2 * np.pi
-        phi_minima[phi_minima_idx] = value
+    if num_phi_minima == 1:
+        phi_minima = np.zeros(3)
+        phi_minima[0] = 0.0
+        phi_minima[1] = np.pi / 2
+        phi_minima[2] = -np.pi / 2
+    else:
+        phi_minima = np.zeros(num_phi_minima)
+        for phi_minima_idx in range(num_phi_minima):
+            value = phi_minima_idx * 2 * np.pi / num_phi_minima
+            if value > np.pi:
+                value -= 2 * np.pi
+            phi_minima[phi_minima_idx] = value
 
-    num_psi_minima = int(n)
-    psi_minima = np.zeros(num_psi_minima)
-    for psi_minima_idx in range(num_psi_minima):
-        value = psi_minima_idx * 2 * np.pi / num_psi_minima
-        if value > np.pi:
-            value -= 2 * np.pi
-        psi_minima[psi_minima_idx] = value
+    num_psi_minima = int(n_prime)
+    if num_psi_minima == 1:
+        psi_minima = np.zeros(3)
+        psi_minima[0] = 0.0
+        psi_minima[1] = np.pi / 2
+        psi_minima[2] = -np.pi / 2
+    else:
+        psi_minima = np.zeros(num_psi_minima)
+        for psi_minima_idx in range(num_psi_minima):
+            value = psi_minima_idx * 2 * np.pi / num_psi_minima
+            if value > np.pi:
+                value -= 2 * np.pi
+            psi_minima[psi_minima_idx] = value
 
     for idx, (
         phi_real_field,
@@ -769,9 +785,11 @@ def plot_companion_axion_simulation(
 
         # Identify strings
         phi_strings = find_cosmic_strings_brute_force_small(phi_real, phi_imaginary)
+        phi_string_count[idx] = np.count_nonzero(phi_strings) / (M * N)
         positive_phi_strings = np.nonzero(phi_strings > 0)
         negative_phi_strings = np.nonzero(phi_strings < 0)
         psi_strings = find_cosmic_strings_brute_force_small(psi_real, psi_imaginary)
+        psi_string_count[idx] = np.count_nonzero(psi_strings) / (M * N)
         positive_psi_strings = np.nonzero(psi_strings > 0)
         negative_psi_strings = np.nonzero(psi_strings < 0)
 
@@ -804,12 +822,9 @@ def plot_companion_axion_simulation(
             np.abs(psi_domain_walls) > 0, rounded_psi_phase
         )
 
-        # Plot
         plot_api.reset()
-        # phi phase (raw)
-        plot_api.draw_image(
-            rounded_phi_phase, image_extents, 0, 0, draw_settings
-        )
+        # Phi
+        plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
         plot_api.draw_image(
             phi_domain_walls_masked, image_extents, 0, 1, highlight_settings
         )
@@ -830,85 +845,61 @@ def plot_companion_axion_simulation(
             negative_string_settings,
         )
 
+        display_strings = False
+
+        # Phi count
+        if display_strings:
+            plot_api.draw_plot(run_time_x_axis, phi_string_count, 1, 0, line_settings)
+            plot_api.set_x_scale("log", 1)
+            plot_api.set_y_scale("log", 1)
+            plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+            plot_api.set_title(r"$\phi$ cosmic string count ratio", 1)
+            plot_api.set_axes_labels("Time", "Cosmic string count ratio", 1)
+        else:
+            plot_api.draw_plot(run_time_x_axis, phi_dw_count, 1, 0, line_settings)
+            plot_api.set_x_scale("log", 1)
+            plot_api.set_y_scale("log", 1)
+            plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+            plot_api.set_title(r"$\phi$ domain wall count ratio", 1)
+            plot_api.set_axes_labels("Time", "Domain wall count ratio", 1)
+
+        # Psi
+        plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
         plot_api.draw_image(
-            rounded_psi_phase, image_extents, 1, 0, draw_settings
+            psi_domain_walls_masked, image_extents, 2, 1, highlight_settings
         )
-        plot_api.draw_image(
-            psi_domain_walls_masked, image_extents, 1, 1, highlight_settings
-        )
-        plot_api.remove_axis_ticks("both", 1)
-        plot_api.set_title(r"$\theta'$", 1)
+        plot_api.remove_axis_ticks("both", 2)
+        plot_api.set_title(r"$\theta'$", 2)
         plot_api.draw_scatter(
             dx * positive_psi_strings[1],
             dx * positive_psi_strings[0],
-            1,
+            2,
             0,
             positive_string_settings,
         )
         plot_api.draw_scatter(
             dx * negative_psi_strings[1],
             dx * negative_psi_strings[0],
-            1,
+            2,
             1,
             negative_string_settings,
         )
+        # Psi count
+        if display_strings:
+            plot_api.draw_plot(run_time_x_axis, psi_string_count, 3, 0, line_settings)
+            plot_api.set_x_scale("log", 3)
+            plot_api.set_y_scale("log", 3)
+            plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+            plot_api.set_title(r"$\psi$ cosmic string count ratio", 3)
+            plot_api.set_axes_labels("Time", "Cosmic string count ratio", 3)
+        else:
+            plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
+            plot_api.set_x_scale("log", 3)
+            plot_api.set_y_scale("log", 3)
+            plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+            plot_api.set_title(r"$\psi$ domain wall count ratio", 3)
+            plot_api.set_axes_labels("Time", "Domain wall count ratio", 3)
 
-        # # # phi strings
-        # # plot_api.draw_image(phi_phase, image_extents, 1, 0, draw_settings)
-        # # plot_api.draw_scatter(
-        # #     dx * positive_phi_strings[1],
-        # #     dx * positive_phi_strings[0],
-        # #     1,
-        # #     0,
-        # #     positive_string_settings,
-        # # )
-        # # plot_api.draw_scatter(
-        # #     dx * negative_phi_strings[1],
-        # #     dx * negative_phi_strings[0],
-        # #     1,
-        # #     1,
-        # #     negative_string_settings,
-        # # )
-        # # plot_api.set_title(r"$\phi$ Strings", 1)
-        # # plot_api.set_axes_labels(r"$x$", r"$y$", 1)
-        # # Phi phase domain wall count
-        # plot_api.draw_plot(run_time_x_axis, phi_dw_count, 2, 0, line_settings)
-        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 2)
-        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 2)
-        # plot_api.set_title(r"$\theta'$ domain wall count ratio", 1)
-        # plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
-        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
-        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
-        # plot_api.set_title(r"$\theta'$ domain wall count ratio", 3)
-        # # psi phase (raw)
-        # # plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
-        # # psi phase (rounded)
-        # plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
-        # plot_api.set_title(r"$\arg{\psi}$", 2)
-        # plot_api.set_axes_labels(r"$x$", r"$y$", 2)
-        # # # psi strings
-        # # plot_api.draw_image(psi_phase, image_extents, 3, 0, draw_settings)
-        # # plot_api.draw_scatter(
-        # #     dx * positive_psi_strings[1],
-        # #     dx * positive_psi_strings[0],
-        # #     3,
-        # #     0,
-        # #     positive_string_settings,
-        # # )
-        # # plot_api.draw_scatter(
-        # #     dx * negative_psi_strings[1],
-        # #     dx * negative_psi_strings[0],
-        # #     3,
-        # #     1,
-        # #     negative_string_settings,
-        # # )
-        # # plot_api.set_title(r"$\psi$ Strings", 3)
-        # # plot_api.set_axes_labels(r"$x$", r"$y$", 3)
-        # # Psi phase domain wall count
-        # plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
-        # plot_api.set_axes_labels(r"Time", r"Domain wall count ratio", 3)
-        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
-        # plot_api.set_title("Psi Domain wall count ratio", 3)
         plot_api.flush()
     plot_api.close()
     pbar.close()

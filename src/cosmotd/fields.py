@@ -202,7 +202,9 @@ def evolve_velocity(
     evolved_velocity : npt.NDArray[np.float32]
         the evolved 'velocity' of the field.
     """
-    evolved_velocity = velocity + 0.5 * (current_acceleration + next_acceleration) * dt
+    evolved_velocity = (
+        velocity + 0.5 * (current_acceleration + next_acceleration) * dt**2
+    )
     return evolved_velocity
 
 
