@@ -203,7 +203,7 @@ def evolve_velocity(
         the evolved 'velocity' of the field.
     """
     evolved_velocity = (
-        velocity + 0.5 * (current_acceleration + next_acceleration) * dt**2
+        velocity + 0.5 * (current_acceleration + next_acceleration) * dt
     )
     return evolved_velocity
 
