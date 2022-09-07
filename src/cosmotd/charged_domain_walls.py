@@ -164,7 +164,63 @@ def plot_charged_domain_wall_simulation(
         phi_field = loaded_fields[0]
         sigma_real_field = loaded_fields[1]
         sigma_imaginary_field = loaded_fields[2]
-        if M != phi_field.value.shape[0] or N != phi_field.value.shape[1]:
+        # Initiliase acceleration
+        complex_square_amplitude = (
+            sigma_real_field.value**2 + sigma_imaginary_field.value**2
+        )
+        # Initialise acceleration
+        phi_field.acceleration = evolve_acceleration(
+            phi_field.value,
+            phi_field.velocity,
+            potential_derivative_real_cdw(
+                phi_field.value, complex_square_amplitude, beta, eta_phi, lam_phi
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        sigma_real_field.acceleration = evolve_acceleration(
+            sigma_real_field.value,
+            sigma_real_field.velocity,
+            potential_derivative_complex_cdw(
+                sigma_real_field.value,
+                sigma_imaginary_field.value,
+                phi_field.value,
+                beta,
+                eta_sigma,
+                lam_sigma,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        sigma_imaginary_field.acceleration = evolve_acceleration(
+            sigma_imaginary_field.value,
+            sigma_imaginary_field.velocity,
+            potential_derivative_complex_cdw(
+                sigma_imaginary_field.value,
+                sigma_real_field.value,
+                phi_field.value,
+                beta,
+                eta_sigma,
+                lam_sigma,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        # Warn if box size is different
+        if (
+            M != phi_field.value.shape[0]
+            or N != phi_field.value.shape[1]
+            or M != sigma_real_field.value.shape[0]
+            or N != sigma_real_field.value.shape[1]
+            or M != sigma_imaginary_field.value.shape[0]
+            or N != sigma_imaginary_field.value.shape[1]
+        ):
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
             )
@@ -231,10 +287,10 @@ def plot_charged_domain_wall_simulation(
         )
 
         # Package fields
-        phi_field = Field(phi, phidot, phidotdot)
-        sigma_real_field = Field(sigma_real, sigmadot_real, sigmadotdot_real)
+        phi_field = Field(phi, phidot, phidotdot, dt)
+        sigma_real_field = Field(sigma_real, sigmadot_real, sigmadotdot_real, dt)
         sigma_imaginary_field = Field(
-            sigma_imaginary, sigmadot_imaginary, sigmadotdot_imaginary
+            sigma_imaginary, sigmadot_imaginary, sigmadotdot_imaginary, dt
         )
         file_name = f"charged_domain_walls_rho{charge_density}_M{M}_N{N}_np{seed}.ctdd"
         save_fields([phi_field, sigma_real_field, sigma_imaginary_field], file_name)
@@ -364,9 +420,6 @@ def run_charged_domain_wall_simulation(
     sigma_imaginary_field : Field
         the imaginary component of the sigma field.
     """
-    # Clock
-    t = 1.0 * dt
-
     # Yield the initial condition
     yield phi_field, sigma_real_field, sigma_imaginary_field
 
@@ -390,7 +443,9 @@ def run_charged_domain_wall_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi_field.time += dt
+        sigma_real_field.time += dt
+        sigma_imaginary_field.time += dt
 
         complex_square_amplitude = (
             sigma_real_field.value**2 + sigma_imaginary_field.value**2
@@ -405,7 +460,7 @@ def run_charged_domain_wall_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_field.time,
         )
         next_sigmadotdot_real = evolve_acceleration(
             sigma_real_field.value,
@@ -421,7 +476,7 @@ def run_charged_domain_wall_simulation(
             alpha,
             era,
             dx,
-            t,
+            sigma_real_field.time,
         )
         next_sigmadotdot_imaginary = evolve_acceleration(
             sigma_imaginary_field.value,
@@ -437,7 +492,7 @@ def run_charged_domain_wall_simulation(
             alpha,
             era,
             dx,
-            t,
+            sigma_imaginary_field.time,
         )
         # Evolve phidot
         phi_field.velocity = evolve_velocity(

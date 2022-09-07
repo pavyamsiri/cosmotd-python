@@ -8,8 +8,10 @@ from turtle import color
 import numpy as np
 from numpy import typing as npt
 from tqdm import tqdm
+from cosmotd.domain_walls import potential_derivative_dw
 
 from cosmotd.plot.settings import ScatterConfig
+from cosmotd.utils import laplacian2D_iterative
 
 # Internal modules
 from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
@@ -111,7 +113,37 @@ def plot_cosmic_string_simulation(
             raise MissingFieldsException("Requires at least 2 fields.")
         phi_real_field = loaded_fields[0]
         phi_imaginary_field = loaded_fields[1]
-        if M != phi_real_field.value.shape[0] or N != phi_real_field.value.shape[1]:
+        # Initialise acceleration
+        phi_real_field.acceleration = evolve_acceleration(
+            phi_real_field.value,
+            phi_real_field.velocity,
+            potential_derivative_cs(
+                phi_real_field.value, phi_imaginary_field.value, eta, lam
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi_imaginary_field.acceleration = evolve_acceleration(
+            phi_imaginary_field.value,
+            phi_imaginary_field.velocity,
+            potential_derivative_cs(
+                phi_imaginary_field.value, phi_real_field.value, eta, lam
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Warn if box size is different
+        if (
+            M != phi_real_field.value.shape[0]
+            or N != phi_real_field.value.shape[1]
+            or M != phi_imaginary_field.value.shape[0]
+            or N != phi_imaginary_field.value.shape[1]
+        ):
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
             )
@@ -151,9 +183,9 @@ def plot_cosmic_string_simulation(
         )
 
         # Package fields
-        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real, dt)
         phi_imaginary_field = Field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
         )
 
         # Save fields
@@ -188,7 +220,7 @@ def plot_cosmic_string_simulation(
             title="Cosmic string simulation",
             file_name="cosmic_strings",
             nrows=1,
-            ncols=2,
+            ncols=1,
             figsize=(640, 480),
             title_flag=False,
         ),
@@ -224,24 +256,25 @@ def plot_cosmic_string_simulation(
         plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
         plot_api.set_title(r"$\theta$", 0)
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
-        # Strings
-        plot_api.draw_image(phase, image_extents, 1, 0, draw_settings)
-        plot_api.draw_scatter(
-            dx * positive_strings[1],
-            dx * positive_strings[0],
-            1,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_strings[1],
-            dx * negative_strings[0],
-            1,
-            1,
-            negative_string_settings,
-        )
-        plot_api.set_title(r"Strings", 1)
-        plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+        # # Strings
+        # plot_api.draw_image(phase, image_extents, 1, 0, draw_settings)
+        # plot_api.draw_scatter(
+        #     dx * positive_strings[1],
+        #     dx * positive_strings[0],
+        #     1,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_strings[1],
+        #     dx * negative_strings[0],
+        #     1,
+        #     1,
+        #     negative_string_settings,
+        # )
+        # plot_api.set_title(r"Strings", 1)
+        # plot_api.set_axes_labels(r"$x$", r"$y$", 1)
+
         plot_api.flush()
     plot_api.close()
     pbar.close()
@@ -288,8 +321,6 @@ def run_cosmic_string_simulation(
     phi_imaginary_field : Field
         the imaginary component of the phi field.
     """
-    # Clock
-    t = 1.0 * dt
 
     # Yield the initial condition
     yield phi_real_field, phi_imaginary_field
@@ -311,7 +342,8 @@ def run_cosmic_string_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi_real_field.time += dt
+        phi_imaginary_field.time += dt
 
         next_phidotdot_real = evolve_acceleration(
             phi_real_field.value,
@@ -322,7 +354,7 @@ def run_cosmic_string_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_real_field.time,
         )
         next_phidotdot_imaginary = evolve_acceleration(
             phi_imaginary_field.value,
@@ -333,8 +365,9 @@ def run_cosmic_string_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_imaginary_field.time,
         )
+
         # Evolve phidot
         phi_real_field.velocity = evolve_velocity(
             phi_real_field.velocity,

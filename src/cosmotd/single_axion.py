@@ -69,6 +69,7 @@ def potential_derivative_single_axion_real(
     potential_derivative = (
         lam * (real_field**2 + imaginary_field**2 - eta**2) * real_field
     )
+
     # Color anomaly potential
     potential_derivative -= (
         2
@@ -125,6 +126,7 @@ def potential_derivative_single_axion_imaginary(
     potential_derivative = (
         lam * (real_field**2 + imaginary_field**2 - eta**2) * imaginary_field
     )
+
     # Color anomaly potential
     potential_derivative += (
         2
@@ -201,6 +203,7 @@ def plot_single_axion_simulation(
 
     # Load from file if given
     if file_name is not None:
+        print(f"Loading field from {file_name}...")
         loaded_fields = load_fields(file_name)
         if len(loaded_fields) > 2:
             print(
@@ -213,7 +216,53 @@ def plot_single_axion_simulation(
             raise MissingFieldsException("Requires at least 2 field.")
         phi_real_field = loaded_fields[0]
         phi_imaginary_field = loaded_fields[1]
-        if M != phi_real_field.value.shape[0] or N != phi_real_field.value.shape[1]:
+        # Initialise acceleration
+        phidotdot_real = evolve_acceleration(
+            phi_real_field.value,
+            phi_real_field.velocity,
+            potential_derivative_single_axion_real(
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                eta,
+                lam,
+                n,
+                K,
+                dt,
+                t0,
+                growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary_field.value,
+            phi_imaginary_field.velocity,
+            potential_derivative_single_axion_imaginary(
+                phi_imaginary_field.value,
+                phi_real_field.value,
+                eta,
+                lam,
+                n,
+                K,
+                dt,
+                t0,
+                growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Warn if box size is different
+        if (
+            M != phi_real_field.value.shape[0]
+            or N != phi_real_field.value.shape[1]
+            or M != phi_imaginary_field.value.shape[0]
+            or N != phi_imaginary_field.value.shape[1]
+        ):
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
             )
@@ -257,9 +306,9 @@ def plot_single_axion_simulation(
         )
 
         # Package fields
-        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real, dt)
         phi_imaginary_field = Field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
         )
         file_name = f"single_axion_M{M}_N{N}_np{seed}.ctdd"
         save_fields([phi_real_field, phi_imaginary_field], file_name)
@@ -298,8 +347,8 @@ def plot_single_axion_simulation(
             title="Single Axion simulation",
             file_name="single_axion",
             nrows=1,
-            ncols=2,
-            figsize=(640, 480),
+            ncols=1,
+            figsize=(3 * 640, 3 * 480),
             title_flag=False,
         ),
         lambda x: pbar.update(x),
@@ -374,36 +423,51 @@ def plot_single_axion_simulation(
         # Plot
         plot_api.reset()
 
-        # Draw just the phase
-        plot_api.draw_image(rounded_field_masked, image_extents, 0, 0, draw_settings)
+        # # Draw just the phase
+        # plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
+        # plot_api.draw_image(
+        #     domain_walls_masked, image_extents, 0, 1, highlight_settings
+        # )
+        # plot_api.remove_axis_ticks("both", 0)
+        # plot_api.draw_scatter(
+        #     dx * positive_strings[1],
+        #     dx * positive_strings[0],
+        #     0,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_strings[1],
+        #     dx * negative_strings[0],
+        #     0,
+        #     1,
+        #     negative_string_settings,
+        # )
+        # plot_api.set_title("Phase", 0)
+
+        # # String count
+        # plot_api.draw_plot(run_time_x_axis, string_count, 1, 0, line_settings)
+        # plot_api.set_axes_labels(r"Time", r"Cosmic string count ratio", 1)
+        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        # plot_api.set_title("Cosmic string count ratio", 1)
+
         plot_api.draw_image(
-            domain_walls_masked, image_extents, 0, 1, highlight_settings
-        )
-        plot_api.remove_axis_ticks("both", 0)
-        plot_api.draw_scatter(
-            dx * positive_strings[1],
-            dx * positive_strings[0],
+            phase,
+            image_extents,
             0,
             0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_strings[1],
-            dx * negative_strings[0],
-            0,
-            1,
-            negative_string_settings,
+            ImageConfig(
+                vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+            ),
         )
         plot_api.set_title("Phase", 0)
 
-        # String count
-        plot_api.draw_plot(run_time_x_axis, string_count, 1, 0, line_settings)
-        plot_api.set_axes_labels(r"Time", r"Cosmic string count ratio", 1)
-        plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-        plot_api.set_title("Cosmic string count ratio", 1)
         plot_api.flush()
     plot_api.close()
     pbar.close()
+
+    save_fields([phi_real_field, phi_imaginary_field], "end_of_single_axion.ctdd")
+
     return dw_count[-1]
 
 
@@ -460,9 +524,6 @@ def run_single_axion_simulation(
     phi_imaginary_field : Field
         the imaginary component of the phi field.
     """
-    # Clock
-    t = 1.0 * dt
-
     # Yield the initial condition
     yield phi_real_field, phi_imaginary_field
 
@@ -483,7 +544,8 @@ def run_single_axion_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi_real_field.time += dt
+        phi_imaginary_field.time += dt
 
         next_phidotdot_real = evolve_acceleration(
             phi_real_field.value,
@@ -495,14 +557,14 @@ def run_single_axion_simulation(
                 lam,
                 n,
                 K,
-                t,
+                phi_real_field.time,
                 t0,
                 growth,
             ),
             alpha,
             era,
             dx,
-            t,
+            phi_real_field.time,
         )
         next_phidotdot_imaginary = evolve_acceleration(
             phi_imaginary_field.value,
@@ -514,14 +576,14 @@ def run_single_axion_simulation(
                 lam,
                 n,
                 K,
-                t,
+                phi_imaginary_field.time,
                 t0,
                 growth,
             ),
             alpha,
             era,
             dx,
-            t,
+            phi_imaginary_field.time,
         )
         # Evolve phidot
         phi_real_field.velocity = evolve_velocity(
@@ -673,9 +735,9 @@ def run_single_axion_domain_wall_trials(
         )
 
         # Package fields
-        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real, dt)
         phi_imaginary_field = Field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
         )
         # Initialise simulation
         simulation = run_single_axion_simulation(

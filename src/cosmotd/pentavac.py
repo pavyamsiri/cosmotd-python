@@ -239,7 +239,79 @@ def plot_pentavac_simulation(
         phi2_field = loaded_fields[1]
         phi3_field = loaded_fields[2]
         phi4_field = loaded_fields[3]
-        if M != phi1_field.value.shape[0] or N != phi1_field.value.shape[1]:
+        # Initialise acceleration
+        phi1_field.acceleration = evolve_acceleration(
+            phi1_field.value,
+            phi1_field.velocity,
+            potential_derivative_phi1_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi2_field.acceleration = evolve_acceleration(
+            phi1_field.value,
+            phi1_field.velocity,
+            potential_derivative_phi2_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi3_field.acceleration = evolve_acceleration(
+            phi1_field.value,
+            phi1_field.velocity,
+            potential_derivative_phi3_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phi4_field.acceleration = evolve_acceleration(
+            phi1_field.value,
+            phi1_field.velocity,
+            potential_derivative_phi4_pentavac(
+                phi1_field.value,
+                phi2_field.value,
+                phi3_field.value,
+                phi4_field.value,
+                epsilon,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Warn if box size is different
+        if (
+            M != phi1_field.value.shape[0]
+            or N != phi1_field.value.shape[1]
+            or M != phi2_field.value.shape[0]
+            or N != phi2_field.value.shape[1]
+            or M != phi3_field.value.shape[0]
+            or N != phi3_field.value.shape[1]
+            or M != phi4_field.value.shape[0]
+            or N != phi4_field.value.shape[1]
+        ):
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
             )
@@ -299,10 +371,10 @@ def plot_pentavac_simulation(
         )
 
         # Package fields
-        phi1_field = Field(phi1, phi1dot, phi1dotdot)
-        phi2_field = Field(phi2, phi2dot, phi2dotdot)
-        phi3_field = Field(phi3, phi3dot, phi3dotdot)
-        phi4_field = Field(phi4, phi4dot, phi4dotdot)
+        phi1_field = Field(phi1, phi1dot, phi1dotdot, dt)
+        phi2_field = Field(phi2, phi2dot, phi2dotdot, dt)
+        phi3_field = Field(phi3, phi3dot, phi3dotdot, dt)
+        phi4_field = Field(phi4, phi4dot, phi4dotdot, dt)
 
         # Save fields
         file_name = f"pentavac_M{M}_N{N}_np{seed}.ctdd"
@@ -345,8 +417,12 @@ def plot_pentavac_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis", colorbar_flag=True)
-    domain_wall_settings = ImageConfig(vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True)
-    angle_settings = ImageConfig(vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True)
+    domain_wall_settings = ImageConfig(
+        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True
+    )
+    angle_settings = ImageConfig(
+        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+    )
     image_extents = (0, dx * M, 0, dx * M)
 
     # Number of iterations in the simulation (including initial condition)
@@ -365,7 +441,9 @@ def plot_pentavac_simulation(
         colored_field = color_vacua(phi_phase, psi_phase, epsilon)
         # Identify domain walls
         domain_walls = find_domain_walls_with_width_multidomain(colored_field, 1)
-        domain_walls_masked = np.ma.masked_where(np.isclose(domain_walls, 0), domain_walls)
+        domain_walls_masked = np.ma.masked_where(
+            np.isclose(domain_walls, 0), domain_walls
+        )
         colored_field_masked = np.ma.masked_where(
             np.abs(domain_walls) > 0, colored_field
         )
@@ -378,7 +456,9 @@ def plot_pentavac_simulation(
         plot_api.set_axes_labels(r"$x$", r"$y$", 0)
         # Domain walls
         plot_api.draw_image(colored_field_masked, image_extents, 1, 0, draw_settings)
-        plot_api.draw_image(domain_walls_masked, image_extents, 1, 1, domain_wall_settings)
+        plot_api.draw_image(
+            domain_walls_masked, image_extents, 1, 1, domain_wall_settings
+        )
         plot_api.set_title(r"Domain walls", 1)
         plot_api.set_axes_labels(r"$x$", r"$y$", 1)
         # Phases
@@ -441,9 +521,6 @@ def run_pentavac_simulation(
     phi4_field : Field
         the imaginary component of the psi field.
     """
-    # Clock
-    t = 1.0 * dt
-
     yield phi1_field, phi2_field, phi3_field, phi4_field
 
     # Run loop
@@ -463,7 +540,10 @@ def run_pentavac_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi1_field.time += dt
+        phi2_field.time += dt
+        phi3_field.time += dt
+        phi4_field.time += dt
 
         next_phi1dotdot = evolve_acceleration(
             phi1_field.value,
@@ -478,7 +558,7 @@ def run_pentavac_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi1_field.time,
         )
         next_phi2dotdot = evolve_acceleration(
             phi2_field.value,
@@ -493,7 +573,7 @@ def run_pentavac_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi2_field.time,
         )
         next_phi3dotdot = evolve_acceleration(
             phi3_field.value,
@@ -508,7 +588,7 @@ def run_pentavac_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi3_field.time,
         )
         next_phi4dotdot = evolve_acceleration(
             phi4_field.value,
@@ -523,7 +603,7 @@ def run_pentavac_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi4_field.time,
         )
 
         # Evolve phidot

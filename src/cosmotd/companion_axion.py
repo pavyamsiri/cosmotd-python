@@ -4,7 +4,6 @@ from collections.abc import Generator
 # External modules
 import numpy as np
 from numpy import typing as npt
-from pygments import highlight
 from tqdm import tqdm
 from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
 
@@ -514,7 +513,127 @@ def plot_companion_axion_simulation(
         phi_imaginary_field = loaded_fields[1]
         psi_real_field = loaded_fields[2]
         psi_imaginary_field = loaded_fields[3]
-        if M != phi_real_field.value.shape[0] or N != phi_real_field.value.shape[1]:
+        # Initialise acceleration
+        phidotdot_real = evolve_acceleration(
+            phi_real_field.value,
+            phi_real_field.velocity,
+            potential_derivative_ca_phi1(
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        phidotdot_imaginary = evolve_acceleration(
+            phi_imaginary_field.value,
+            phi_imaginary_field.velocity,
+            potential_derivative_ca_phi2(
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_real = evolve_acceleration(
+            psi_real_field.value,
+            psi_real_field.velocity,
+            potential_derivative_ca_psi1(
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+        psidotdot_imaginary = evolve_acceleration(
+            psi_imaginary_field.value,
+            psi_imaginary_field.velocity,
+            potential_derivative_ca_psi2(
+                phi_real_field.value,
+                phi_imaginary_field.value,
+                psi_real_field.value,
+                psi_imaginary_field.value,
+                eta,
+                lam,
+                n,
+                n_prime,
+                m,
+                m_prime,
+                K,
+                kappa,
+                dt,
+                t0,
+                s0,
+                n_growth,
+                m_growth,
+            ),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Warn if box size is different
+        if (
+            M != phi_real_field.value.shape[0]
+            or N != phi_real_field.value.shape[1]
+            or M != phi_imaginary_field.value.shape[0]
+            or N != phi_imaginary_field.value.shape[1]
+            or M != psi_real_field.value.shape[0]
+            or N != psi_real_field.value.shape[1]
+            or M != psi_imaginary_field.value.shape[0]
+            or N != psi_imaginary_field.value.shape[1]
+        ):
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
             )
@@ -647,13 +766,13 @@ def plot_companion_axion_simulation(
         )
 
         # Package fields
-        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real, dt)
         phi_imaginary_field = Field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
         )
-        psi_real_field = Field(psi_real, psidot_real, psidotdot_real)
+        psi_real_field = Field(psi_real, psidot_real, psidotdot_real, dt)
         psi_imaginary_field = Field(
-            psi_imaginary, psidot_imaginary, psidotdot_imaginary
+            psi_imaginary, psidot_imaginary, psidotdot_imaginary, dt
         )
         file_name = f"companion_axion_M{M}_N{N}_np{seed}.ctdd"
         save_fields(
@@ -702,7 +821,7 @@ def plot_companion_axion_simulation(
         PlotterConfig(
             title="Companion axion simulation",
             file_name="companion_axion",
-            nrows=2,
+            nrows=1,
             ncols=2,
             figsize=(720, 480),
             title_flag=False,
@@ -825,80 +944,80 @@ def plot_companion_axion_simulation(
         plot_api.reset()
         # Phi
         plot_api.draw_image(phi_phase, image_extents, 0, 0, draw_settings)
-        plot_api.draw_image(
-            phi_domain_walls_masked, image_extents, 0, 1, highlight_settings
-        )
+        # plot_api.draw_image(
+        #     phi_domain_walls_masked, image_extents, 0, 1, highlight_settings
+        # )
         plot_api.remove_axis_ticks("both", 0)
         plot_api.set_title(r"$\theta$", 0)
-        plot_api.draw_scatter(
-            dx * positive_phi_strings[1],
-            dx * positive_phi_strings[0],
-            0,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_phi_strings[1],
-            dx * negative_phi_strings[0],
-            0,
-            1,
-            negative_string_settings,
-        )
+        # plot_api.draw_scatter(
+        #     dx * positive_phi_strings[1],
+        #     dx * positive_phi_strings[0],
+        #     0,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_phi_strings[1],
+        #     dx * negative_phi_strings[0],
+        #     0,
+        #     1,
+        #     negative_string_settings,
+        # )
 
         display_strings = False
 
-        # Phi count
-        if display_strings:
-            plot_api.draw_plot(run_time_x_axis, phi_string_count, 1, 0, line_settings)
-            plot_api.set_x_scale("log", 1)
-            plot_api.set_y_scale("log", 1)
-            plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-            plot_api.set_title(r"$\phi$ cosmic string count ratio", 1)
-            plot_api.set_axes_labels("Time", "Cosmic string count ratio", 1)
-        else:
-            plot_api.draw_plot(run_time_x_axis, phi_dw_count, 1, 0, line_settings)
-            plot_api.set_x_scale("log", 1)
-            plot_api.set_y_scale("log", 1)
-            plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-            plot_api.set_title(r"$\phi$ domain wall count ratio", 1)
-            plot_api.set_axes_labels("Time", "Domain wall count ratio", 1)
+        # # Phi count
+        # if display_strings:
+        #     plot_api.draw_plot(run_time_x_axis, phi_string_count, 1, 0, line_settings)
+        #     plot_api.set_x_scale("log", 1)
+        #     plot_api.set_y_scale("log", 1)
+        #     plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        #     plot_api.set_title(r"$\phi$ cosmic string count ratio", 1)
+        #     plot_api.set_axes_labels("Time", "Cosmic string count ratio", 1)
+        # else:
+        #     plot_api.draw_plot(run_time_x_axis, phi_dw_count, 1, 0, line_settings)
+        #     plot_api.set_x_scale("log", 1)
+        #     plot_api.set_y_scale("log", 1)
+        #     plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
+        #     plot_api.set_title(r"$\phi$ domain wall count ratio", 1)
+        #     plot_api.set_axes_labels("Time", "Domain wall count ratio", 1)
 
         # Psi
-        plot_api.draw_image(psi_phase, image_extents, 2, 0, draw_settings)
-        plot_api.draw_image(
-            psi_domain_walls_masked, image_extents, 2, 1, highlight_settings
-        )
-        plot_api.remove_axis_ticks("both", 2)
-        plot_api.set_title(r"$\theta'$", 2)
-        plot_api.draw_scatter(
-            dx * positive_psi_strings[1],
-            dx * positive_psi_strings[0],
-            2,
-            0,
-            positive_string_settings,
-        )
-        plot_api.draw_scatter(
-            dx * negative_psi_strings[1],
-            dx * negative_psi_strings[0],
-            2,
-            1,
-            negative_string_settings,
-        )
-        # Psi count
-        if display_strings:
-            plot_api.draw_plot(run_time_x_axis, psi_string_count, 3, 0, line_settings)
-            plot_api.set_x_scale("log", 3)
-            plot_api.set_y_scale("log", 3)
-            plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
-            plot_api.set_title(r"$\psi$ cosmic string count ratio", 3)
-            plot_api.set_axes_labels("Time", "Cosmic string count ratio", 3)
-        else:
-            plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
-            plot_api.set_x_scale("log", 3)
-            plot_api.set_y_scale("log", 3)
-            plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
-            plot_api.set_title(r"$\psi$ domain wall count ratio", 3)
-            plot_api.set_axes_labels("Time", "Domain wall count ratio", 3)
+        plot_api.draw_image(psi_phase, image_extents, 1, 0, draw_settings)
+        # plot_api.draw_image(
+        #     psi_domain_walls_masked, image_extents, 1, 1, highlight_settings
+        # )
+        plot_api.remove_axis_ticks("both", 1)
+        plot_api.set_title(r"$\theta'$", 1)
+        # plot_api.draw_scatter(
+        #     dx * positive_psi_strings[1],
+        #     dx * positive_psi_strings[0],
+        #     1,
+        #     0,
+        #     positive_string_settings,
+        # )
+        # plot_api.draw_scatter(
+        #     dx * negative_psi_strings[1],
+        #     dx * negative_psi_strings[0],
+        #     1,
+        #     1,
+        #     negative_string_settings,
+        # )
+        # # Psi count
+        # if display_strings:
+        #     plot_api.draw_plot(run_time_x_axis, psi_string_count, 3, 0, line_settings)
+        #     plot_api.set_x_scale("log", 3)
+        #     plot_api.set_y_scale("log", 3)
+        #     plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        #     plot_api.set_title(r"$\psi$ cosmic string count ratio", 3)
+        #     plot_api.set_axes_labels("Time", "Cosmic string count ratio", 3)
+        # else:
+        #     plot_api.draw_plot(run_time_x_axis, psi_dw_count, 3, 0, line_settings)
+        #     plot_api.set_x_scale("log", 3)
+        #     plot_api.set_y_scale("log", 3)
+        #     plot_api.set_axes_limits(0, simulation_end, 0, 1, 3)
+        #     plot_api.set_title(r"$\psi$ domain wall count ratio", 3)
+        #     plot_api.set_axes_labels("Time", "Domain wall count ratio", 3)
 
         plot_api.flush()
     plot_api.close()
@@ -988,9 +1107,6 @@ def run_companion_axion_simulation(
     psi_imaginary_field : Field
         the imaginary component of the psi field.
     """
-    # Clock
-    t = 1.0 * dt
-
     # Yield the initial condition
     yield phi_real_field, phi_imaginary_field, psi_real_field, psi_imaginary_field
 
@@ -1024,7 +1140,10 @@ def run_companion_axion_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi_real_field.time += dt
+        phi_imaginary_field.time += dt
+        psi_real_field.time += dt
+        psi_imaginary_field.time += dt
 
         next_phidotdot_real = evolve_acceleration(
             phi_real_field.value,
@@ -1042,7 +1161,7 @@ def run_companion_axion_simulation(
                 m_prime,
                 K,
                 kappa,
-                t,
+                phi_real_field.time,
                 t0,
                 s0,
                 n_growth,
@@ -1051,7 +1170,7 @@ def run_companion_axion_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_real_field.time,
         )
         next_phidotdot_imaginary = evolve_acceleration(
             phi_imaginary_field.value,
@@ -1069,7 +1188,7 @@ def run_companion_axion_simulation(
                 m_prime,
                 K,
                 kappa,
-                t,
+                phi_imaginary_field.time,
                 t0,
                 s0,
                 n_growth,
@@ -1078,7 +1197,7 @@ def run_companion_axion_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_imaginary_field.time,
         )
         next_psidotdot_real = evolve_acceleration(
             psi_real_field.value,
@@ -1096,7 +1215,7 @@ def run_companion_axion_simulation(
                 m_prime,
                 K,
                 kappa,
-                t,
+                psi_real_field.time,
                 t0,
                 s0,
                 n_growth,
@@ -1105,7 +1224,7 @@ def run_companion_axion_simulation(
             alpha,
             era,
             dx,
-            t,
+            psi_real_field.time,
         )
         next_psidotdot_imaginary = evolve_acceleration(
             psi_imaginary_field.value,
@@ -1123,7 +1242,7 @@ def run_companion_axion_simulation(
                 m_prime,
                 K,
                 kappa,
-                t,
+                psi_imaginary_field.time,
                 t0,
                 s0,
                 n_growth,
@@ -1132,7 +1251,7 @@ def run_companion_axion_simulation(
             alpha,
             era,
             dx,
-            t,
+            psi_imaginary_field.time,
         )
         # Evolve phidot
         phi_real_field.velocity = evolve_velocity(
@@ -1421,13 +1540,13 @@ def run_companion_axion_domain_wall_trials(
         )
 
         # Package fields
-        phi_real_field = Field(phi_real, phidot_real, phidotdot_real)
+        phi_real_field = Field(phi_real, phidot_real, phidotdot_real, dt)
         phi_imaginary_field = Field(
-            phi_imaginary, phidot_imaginary, phidotdot_imaginary
+            phi_imaginary, phidot_imaginary, phidotdot_imaginary, dt
         )
-        psi_real_field = Field(psi_real, psidot_real, psidotdot_real)
+        psi_real_field = Field(psi_real, psidot_real, psidotdot_real, dt)
         psi_imaginary_field = Field(
-            psi_imaginary, psidot_imaginary, psidotdot_imaginary
+            psi_imaginary, psidot_imaginary, psidotdot_imaginary, dt
         )
         # Initialise simulation
         simulation = run_companion_axion_simulation(

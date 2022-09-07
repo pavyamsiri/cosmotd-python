@@ -134,6 +134,18 @@ def plot_domain_wall_simulation(
             )
             raise MissingFieldsException("Requires at least 1 field.")
         phi_field = loaded_fields[0]
+        # Initialise acceleration
+        phi_field.acceleration = evolve_acceleration(
+            phi_field.value,
+            phi_field.velocity,
+            potential_derivative_dw(phi_field.value, eta, lam),
+            alpha,
+            era,
+            dx,
+            dt,
+        )
+
+        # Warn if box size is different
         if M != phi_field.value.shape[0] or N != phi_field.value.shape[1]:
             print(
                 "WARNING: The given box size does not match the box size of the field loaded from the file!"
@@ -151,7 +163,7 @@ def plot_domain_wall_simulation(
         )
 
         # Save field
-        phi_field = Field(phi, phidot, phidotdot)
+        phi_field = Field(phi, phidot, phidotdot, dt)
         file_name = f"domain_walls_M{M}_N{N}_np{seed}.ctdd"
         save_fields([phi_field], file_name)
 
@@ -281,7 +293,6 @@ def run_domain_wall_simulation(
     era: float,
     lam: float,
     run_time: int,
-    initial_time: float | None = None,
 ) -> Generator[Field, None, None]:
     """Runs a domain wall simulation in two dimensions.
 
@@ -309,12 +320,6 @@ def run_domain_wall_simulation(
     phi_field : Field
         the real scalar field phi.
     """
-    if initial_time is None:
-        # Clock
-        t = 1.0 * dt
-    else:
-        t = initial_time
-
     # Yield the initial condition
     yield phi_field
 
@@ -326,7 +331,7 @@ def run_domain_wall_simulation(
         )
 
         # Next timestep
-        t += dt
+        phi_field.time += dt
 
         next_phidotdot = evolve_acceleration(
             phi_field.value,
@@ -335,7 +340,7 @@ def run_domain_wall_simulation(
             alpha,
             era,
             dx,
-            t,
+            phi_field.time,
         )
         # Evolve phidot
         phi_field.velocity = evolve_velocity(
@@ -432,7 +437,7 @@ def run_domain_wall_ratio_trials(
         phidotdot = evolve_acceleration(
             phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, dt
         )
-        phi_field = Field(phi, phidot, phidotdot)
+        phi_field = Field(phi, phidot, phidotdot, dt)
         # Initialise simulation
         simulation = run_domain_wall_simulation(
             phi_field, dx, dt, alpha, eta, era, lam, run_time
@@ -532,7 +537,7 @@ def run_domain_wall_ratio_trials_percentile(
         phidotdot = evolve_acceleration(
             phi, phidot, potential_derivative_dw(phi, eta, lam), alpha, era, dx, dt
         )
-        phi_field = Field(phi, phidot, phidotdot)
+        phi_field = Field(phi, phidot, phidotdot, dt)
         # Initialise simulation
         simulation = run_domain_wall_simulation(
             phi_field, dx, dt, alpha, eta, era, lam, run_time

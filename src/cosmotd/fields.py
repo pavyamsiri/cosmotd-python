@@ -33,11 +33,14 @@ class Field:
         the velocity of the field.
     acceleration : npt.NDArray[np.float32]
         the acceleration of the field.
+    time : float
+        the current time.
     """
 
     value: npt.NDArray[np.float32]
     velocity: npt.NDArray[np.float32]
     acceleration: npt.NDArray[np.float32]
+    time: float
 
 
 """Exceptions"""
@@ -72,21 +75,22 @@ def save_fields(fields: list[Field], file_name: str):
         save_file.write(struct.pack("<I", len(fields)))
         for field in fields:
             # Header of a single field
+            # Save the field dimensions
             M = field.value.shape[0]
             N = field.value.shape[1]
             save_file.write(struct.pack("<I", M))
             save_file.write(struct.pack("<I", N))
+            # Save the current time
+            save_file.write(struct.pack("<f", field.time))
 
             # Field values
             for i in range(M):
                 for j in range(N):
                     value = field.value[i, j]
                     velocity = field.velocity[i, j]
-                    acceleration = field.acceleration[i, j]
                     # Write field value, velocity and acceleration
                     save_file.write(struct.pack("<f", value))
                     save_file.write(struct.pack("<f", velocity))
-                    save_file.write(struct.pack("<f", acceleration))
 
 
 def load_fields(file_name: str) -> list[Field]:
@@ -115,6 +119,7 @@ def load_fields(file_name: str) -> list[Field]:
             # Header
             M = struct.unpack("<I", save_file.read(4))[0]
             N = struct.unpack("<I", save_file.read(4))[0]
+            time = struct.unpack("<f", save_file.read(4))[0]
 
             # Initialise field arrays
             value = np.zeros(shape=(M, N))
@@ -125,12 +130,13 @@ def load_fields(file_name: str) -> list[Field]:
             i = 0
             j = 0
             while True:
+                # Load value and velocity
                 current_value = struct.unpack("<f", save_file.read(4))[0]
                 current_velocity = struct.unpack("<f", save_file.read(4))[0]
-                current_acceleration = struct.unpack("<f", save_file.read(4))[0]
                 value[i, j] = current_value
                 velocity[i, j] = current_velocity
-                acceleration[i, j] = current_acceleration
+                # Initialise acceleration to zero.
+                acceleration[i, j] = 0
                 # Increment to next column
                 j += 1
                 # At end of row
@@ -143,7 +149,7 @@ def load_fields(file_name: str) -> list[Field]:
                     break
 
             # Create field
-            fields[field_idx] = Field(value, velocity, acceleration)
+            fields[field_idx] = Field(value, velocity, acceleration, time)
         return fields
 
 
@@ -202,9 +208,7 @@ def evolve_velocity(
     evolved_velocity : npt.NDArray[np.float32]
         the evolved 'velocity' of the field.
     """
-    evolved_velocity = (
-        velocity + 0.5 * (current_acceleration + next_acceleration) * dt
-    )
+    evolved_velocity = velocity + 0.5 * (current_acceleration + next_acceleration) * dt
     return evolved_velocity
 
 
