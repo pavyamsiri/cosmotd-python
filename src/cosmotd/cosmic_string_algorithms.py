@@ -35,32 +35,32 @@ def find_cosmic_strings_brute_force_small(
     for i in range(M):
         for j in range(N):
             # Current
-            current_real = real_component[i][j]
-            current_imaginary = imaginary_component[i][j]
+            current_real = real_component[i, j]
+            current_imaginary = imaginary_component[i, j]
             # Horizonal
-            left_real = real_component[np.mod(i - 1, M)][j]
-            right_real = real_component[np.mod(i + 1, M)][j]
-            left_imaginary = imaginary_component[np.mod(i - 1, M)][j]
-            right_imaginary = imaginary_component[np.mod(i + 1, M)][j]
+            left_real = real_component[i, np.mod(j - 1, N)]
+            right_real = real_component[i, np.mod(j + 1, N)]
+            left_imaginary = imaginary_component[i, np.mod(j - 1, N)]
+            right_imaginary = imaginary_component[i, np.mod(j + 1, N)]
             # Vertical
-            top_real = real_component[i][np.mod(j - 1, N)]
-            bottom_real = real_component[i][np.mod(j + 1, N)]
-            top_imaginary = imaginary_component[i][np.mod(j - 1, N)]
-            bottom_imaginary = imaginary_component[i][np.mod(j + 1, N)]
+            top_real = real_component[np.mod(i + 1, M), j]
+            bottom_real = real_component[np.mod(i - 1, M), j]
+            top_imaginary = imaginary_component[np.mod(i + 1, M), j]
+            bottom_imaginary = imaginary_component[np.mod(i - 1, M), j]
             # Diagonals
-            top_left_real = real_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
-            top_right_real = real_component[np.mod(i + 1, M)][np.mod(j - 1, N)]
-            bottom_left_real = real_component[np.mod(i - 1, M)][np.mod(j + 1, N)]
-            bottom_right_real = real_component[np.mod(i + 1, M)][np.mod(j + 1, N)]
-            top_left_imaginary = imaginary_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
-            top_right_imaginary = imaginary_component[np.mod(i + 1, M)][
-                np.mod(j - 1, N)
+            top_left_real = real_component[np.mod(i + 1, M), np.mod(j - 1, N)]
+            top_right_real = real_component[np.mod(i + 1, M), np.mod(j + 1, N)]
+            bottom_left_real = real_component[np.mod(i - 1, M), np.mod(j - 1, N)]
+            bottom_right_real = real_component[np.mod(i - 1, M), np.mod(j + 1, N)]
+            top_left_imaginary = imaginary_component[np.mod(i + 1, M), np.mod(j - 1, N)]
+            top_right_imaginary = imaginary_component[
+                np.mod(i + 1, M), np.mod(j + 1, N)
             ]
-            bottom_left_imaginary = imaginary_component[np.mod(i - 1, M)][
-                np.mod(j + 1, N)
+            bottom_left_imaginary = imaginary_component[
+                np.mod(i - 1, M), np.mod(j - 1, N)
             ]
-            bottom_right_imaginary = imaginary_component[np.mod(i + 1, M)][
-                np.mod(j + 1, N)
+            bottom_right_imaginary = imaginary_component[
+                np.mod(i - 1, M), np.mod(j + 1, N)
             ]
 
             # Top left plaquette
@@ -136,19 +136,19 @@ def find_cosmic_strings_brute_force_large(
     for i in range(M):
         for j in range(N):
             # Diagonals
-            top_left_real = real_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
-            top_right_real = real_component[np.mod(i + 1, M)][np.mod(j - 1, N)]
-            bottom_left_real = real_component[np.mod(i - 1, M)][np.mod(j + 1, N)]
-            bottom_right_real = real_component[np.mod(i + 1, M)][np.mod(j + 1, N)]
-            top_left_imaginary = imaginary_component[np.mod(i - 1, M)][np.mod(j - 1, N)]
-            top_right_imaginary = imaginary_component[np.mod(i + 1, M)][
-                np.mod(j - 1, N)
+            top_left_real = real_component[np.mod(i + 1, M), np.mod(j - 1, N)]
+            top_right_real = real_component[np.mod(i + 1, M), np.mod(j + 1, N)]
+            bottom_left_real = real_component[np.mod(i - 1, M), np.mod(j - 1, N)]
+            bottom_right_real = real_component[np.mod(i - 1, M), np.mod(j + 1, N)]
+            top_left_imaginary = imaginary_component[np.mod(i + 1, M), np.mod(j - 1, N)]
+            top_right_imaginary = imaginary_component[
+                np.mod(i + 1, M), np.mod(j + 1, N)
             ]
-            bottom_left_imaginary = imaginary_component[np.mod(i - 1, M)][
-                np.mod(j + 1, N)
+            bottom_left_imaginary = imaginary_component[
+                np.mod(i - 1, M), np.mod(j - 1, N)
             ]
-            bottom_right_imaginary = imaginary_component[np.mod(i + 1, M)][
-                np.mod(j + 1, N)
+            bottom_right_imaginary = imaginary_component[
+                np.mod(i - 1, M), np.mod(j + 1, N)
             ]
 
             # 3x3 plaquette
