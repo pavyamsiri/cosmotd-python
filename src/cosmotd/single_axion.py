@@ -70,8 +70,6 @@ def potential_sa(
 
 def potential_sa_axion_only(
     phi_phase: npt.NDArray[np.float32],
-    eta: float,
-    lam: float,
     n: float,
     K: float,
 ) -> npt.NDArray[np.float32]:
