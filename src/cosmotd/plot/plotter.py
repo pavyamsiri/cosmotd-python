@@ -9,8 +9,8 @@ from .settings import PlotterConfig, LineConfig, ImageConfig, ScatterConfig
 
 """Constants"""
 DPI: int = 100
-PLOT_FOLDER: str = "data/plot_cache"
-VIDEO_FOLDER: str = "data/video_cache"
+PLOT_FOLDER: str = "data/plots"
+VIDEO_FOLDER: str = "data/videos"
 
 
 class Plotter:

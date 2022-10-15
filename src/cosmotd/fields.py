@@ -15,7 +15,7 @@ from .utils import laplacian2D_convolve, laplacian2D_iterative, laplacian2D_matr
 
 
 SUB_TO_ROOT = "/../"
-DATA_CACHE = "data/data_cache"
+DATA_CACHE = "data/field_data"
 
 
 """Data"""
