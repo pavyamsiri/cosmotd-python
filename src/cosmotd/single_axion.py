@@ -9,21 +9,92 @@ from numpy import typing as npt
 from tqdm import tqdm
 
 
-from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
-
-from cosmotd.plot.settings import ScatterConfig
-
 # Internal modules
-from .cosmic_string_algorithms import find_cosmic_strings_brute_force_small
-from .fields import (
+from cosmotd.cosmic_string_algorithms import find_cosmic_strings_brute_force_small
+from cosmotd.domain_wall_algorithms import find_domain_walls_with_width_multidomain
+from cosmotd.plot import Plotter, PlotterConfig, ImageConfig, LineConfig
+from cosmotd.plot.settings import ScatterConfig
+from cosmotd.fields import (
     Field,
     MissingFieldsException,
-    load_fields,
-    periodic_round_field_to_minima,
+    evolve_acceleration,
+    evolve_field,
+    evolve_velocity,
     save_fields,
+    load_fields,
+    calculate_energy,
+    periodic_round_field_to_minima,
 )
-from .fields import evolve_acceleration, evolve_field, evolve_velocity
-from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
+
+
+def potential_sa(
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    eta: float,
+    lam: float,
+    n: float,
+    K: float,
+) -> npt.NDArray[np.float32]:
+    """Calculates the single axion potential including both the Peccei-Quinn potential terms and the axion potential
+    terms.
+
+    Parameters
+    ----------
+    phi_real : npt.NDArray[np.float32]
+        the real part of the field phi.
+    phi_imaginary : npt.NDArray[np.float32]
+        the imaginary part of the field phi.
+    eta : float
+        the location of the symmetry broken minima.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    K : float
+        the strength of the axion potential.
+
+    Returns
+    -------
+    potential : npt.NDArray[np.float32]
+        the full single axion potential.
+    """
+    # Compute the phase
+    phi_phase = np.arctan2(phi_imaginary, phi_real)
+    # Peccei-Quinn potential
+    potential = lam / 4 * (phi_real**2 + phi_imaginary**2 - eta**2) ** 2
+    # Axion potential
+    potential += -2 * K * np.cos(n * phi_phase)
+
+    return potential
+
+
+def potential_sa_axion_only(
+    phi_phase: npt.NDArray[np.float32],
+    eta: float,
+    lam: float,
+    n: float,
+    K: float,
+) -> npt.NDArray[np.float32]:
+    """Calculates the single axion potential including only the axion potential terms (cosine terms).
+
+    Parameters
+    ----------
+    phi_phase : npt.NDArray[np.float32]
+        the phase of the field phi.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    K : float
+        the strength of the axion potential.
+
+    Returns
+    -------
+    potential : npt.NDArray[np.float32]
+        the axion potential terms of the full companion axion potential.
+    """
+    # Axion potential
+    potential = -2 * K * np.cos(n * phi_phase)
+
+    return potential
 
 
 def potential_derivative_single_axion_real(
@@ -347,18 +418,22 @@ def plot_single_axion_simulation(
             title="Single Axion simulation",
             file_name="single_axion",
             nrows=1,
-            ncols=1,
-            figsize=(3 * 640, 3 * 480),
+            ncols=2,
+            figsize=(2 * 720, 720),
             title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(
-        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+        vmin=-np.pi,
+        vmax=np.pi,
+        cmap="twilight_shifted",
+        colorbar_flag=True,
+        colorbar_label=r"$\theta$",
     )
     highlight_settings = ImageConfig(
-        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False
+        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False, colorbar_label=None
     )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
@@ -370,12 +445,19 @@ def plot_single_axion_simulation(
     image_extents = (0, M * dx, 0, N * dx)
 
     # x-axis that spans the simulation's run time
-    run_time_x_axis = np.arange(0, simulation_end, 1, dtype=np.int32)
+    run_time_x_axis = np.linspace(
+        dt, dt * simulation_end, simulation_end, dtype=np.int32
+    )
     # Domain wall count
-    dw_count = np.empty(simulation_end)
-    dw_count.fill(np.nan)
-    string_count = np.empty(simulation_end)
-    string_count.fill(np.nan)
+    dw_count = np.full(simulation_end, np.nan)
+    # String count
+    string_count = np.full(simulation_end, np.nan)
+    # Total energy
+    total_energy = np.full(simulation_end, np.nan)
+    # Domain wall energy
+    dw_energy = np.full(simulation_end, np.nan)
+    # Non domain wall energy
+    non_dw_energy = np.full(simulation_end, np.nan)
 
     # Special case for n = 1
     if n == 1:
@@ -395,6 +477,8 @@ def plot_single_axion_simulation(
         # Unpack
         phi_real = phi_real_field.value
         phi_imaginary = phi_imaginary_field.value
+        phidot_real = phi_real_field.velocity
+        phidot_imaginary = phi_imaginary_field.velocity
         # Phase
         phase = np.arctan2(phi_imaginary, phi_real)
 
@@ -413,54 +497,69 @@ def plot_single_axion_simulation(
         # Count domain walls
         dw_count[idx] = np.count_nonzero(domain_walls) / (M * N)
 
-        domain_walls_masked = np.ma.masked_where(
-            np.isclose(domain_walls, 0), domain_walls
-        )
+        domain_walls_masked = np.ma.masked_values(domain_walls, 0)
         rounded_field_masked = np.ma.masked_where(
             np.abs(domain_walls) > 0, rounded_field
         )
 
+        # Calculate energy
+        energy = calculate_energy(
+            [phi_real, phi_imaginary],
+            [phidot_real, phidot_imaginary],
+            potential_sa(phi_real, phi_imaginary, eta, lam, n, K),
+            dx,
+        )
+        total_energy[idx] = np.sum(energy)
+        dw_energy[idx] = np.ma.sum(
+            np.ma.masked_where(np.ma.getmask(domain_walls_masked), energy)
+        )
+        non_dw_energy[idx] = total_energy[idx] - dw_energy[idx]
+
         # Plot
         plot_api.reset()
-
-        # # Draw just the phase
-        # plot_api.draw_image(phase, image_extents, 0, 0, draw_settings)
-        # plot_api.draw_image(
-        #     domain_walls_masked, image_extents, 0, 1, highlight_settings
-        # )
-        # plot_api.remove_axis_ticks("both", 0)
-        # plot_api.draw_scatter(
-        #     dx * positive_strings[1],
-        #     dx * positive_strings[0],
-        #     0,
-        #     0,
-        #     positive_string_settings,
-        # )
-        # plot_api.draw_scatter(
-        #     dx * negative_strings[1],
-        #     dx * negative_strings[0],
-        #     0,
-        #     1,
-        #     negative_string_settings,
-        # )
-        # plot_api.set_title("Phase", 0)
-
-        # # String count
-        # plot_api.draw_plot(run_time_x_axis, string_count, 1, 0, line_settings)
-        # plot_api.set_axes_labels(r"Time", r"Cosmic string count ratio", 1)
-        # plot_api.set_axes_limits(0, simulation_end, 0, 1, 1)
-        # plot_api.set_title("Cosmic string count ratio", 1)
-
+        plot_api.set_font_size(16)
+        # Phase
         plot_api.draw_image(
             phase,
             image_extents,
             0,
             0,
             ImageConfig(
-                vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+                vmin=-np.pi,
+                vmax=np.pi,
+                cmap="twilight_shifted",
+                colorbar_flag=True,
+                colorbar_label=r"$\theta$",
             ),
         )
-        plot_api.set_title("Phase", 0)
+        plot_api.set_axes_labels("x (comoving)", "y (comoving)", 0)
+        plot_api.set_title(rf"Axion Field Simulation $N = {n}$", 0)
+
+        # Energy
+        plot_api.draw_plot(
+            run_time_x_axis,
+            total_energy,
+            1,
+            0,
+            LineConfig(color="black", linestyle="-"),
+        )
+        plot_api.draw_plot(
+            run_time_x_axis, dw_energy, 1, 1, LineConfig(color="red", linestyle="-")
+        )
+        plot_api.draw_plot(
+            run_time_x_axis,
+            non_dw_energy,
+            1,
+            2,
+            LineConfig(color="blue", linestyle="-"),
+        )
+        plot_api.set_x_scale("log", 1)
+        plot_api.set_axes_labels(r"Time $\tau$", "Energy (a.u.)", 1)
+        plot_api.set_axes_limits(0, dt * simulation_end, None, None, 1)
+        plot_api.set_title(rf"Axion Field Energy", 1)
+        plot_api.set_legend(
+            ["Total energy", "Domain wall energy", "Non domain wall energy"], 1
+        )
 
         plot_api.flush()
     plot_api.close()

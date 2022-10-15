@@ -30,6 +30,111 @@ from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 # kappa = 0.04
 
 
+def potential_ca(
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    psi_real: npt.NDArray[np.float32],
+    psi_imaginary: npt.NDArray[np.float32],
+    eta: float,
+    lam: float,
+    n: float,
+    n_prime: float,
+    m: float,
+    m_prime: float,
+    K: float,
+    kappa: float,
+) -> npt.NDArray[np.float32]:
+    """Calculates the companion axion potential including both the Peccei-Quinn potential terms and the axion potential
+    terms.
+
+    Parameters
+    ----------
+    phi_real : npt.NDArray[np.float32]
+        the real part of the field phi.
+    phi_imaginary : npt.NDArray[np.float32]
+        the imaginary part of the field phi.
+    psi_real : npt.NDArray[np.float32]
+        the real part of the field psi.
+    psi_imaginary : npt.NDArray[np.float32]
+        the imaginary part of the field psi.
+    eta : float
+        the location of the symmetry broken minima.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    n_prime : float
+        the first color anomaly coefficient of the psi field.
+    m : float
+        the second color anomaly coefficient of the phi field.
+    m_prime : float
+        the second color anomaly coefficient of the psi field.
+    K : float
+        the strength of the axion potential.
+    kappa : float
+        the strength of the second axion potential term relative to the other axion potential.
+
+    Returns
+    -------
+    potential : npt.NDArray[np.float32]
+        the full companion axion potential.
+    """
+
+    # Compute phase
+    phi_phase = np.arctan2(phi_imaginary, phi_real)
+    psi_phase = np.arctan2(psi_imaginary, psi_real)
+    # PQ potentials
+    potential = lam / 4 * (phi_real**2 + phi_imaginary**2 - eta**2) ** 2
+    potential += lam / 4 * (psi_real**2 + psi_imaginary**2 - eta**2) ** 2
+    # Companion axion potential
+    potential += -2 * K * np.cos(n * phi_phase + n_prime * psi_phase)
+    potential += -2 * kappa * K * np.cos(m * phi_phase + m_prime * psi_phase)
+
+    return potential
+
+
+def potential_ca_axion_only(
+    phi_phase: npt.NDArray[np.float32],
+    psi_phase: npt.NDArray[np.float32],
+    n: float,
+    n_prime: float,
+    m: float,
+    m_prime: float,
+    K: float,
+    kappa: float,
+) -> npt.NDArray[np.float32]:
+    """Calculates the companion axion potential including only the axion potential terms (cosine terms).
+
+    Parameters
+    ----------
+    phi_phase : npt.NDArray[np.float32]
+        the phase of the field phi.
+    psi_phase : npt.NDArray[np.float32]
+        the phase of the field phi.
+    n : float
+        the first color anomaly coefficient of the phi field.
+    n_prime : float
+        the first color anomaly coefficient of the psi field.
+    m : float
+        the second color anomaly coefficient of the phi field.
+    m_prime : float
+        the second color anomaly coefficient of the psi field.
+    K : float
+        the strength of the axion potential.
+    kappa : float
+        the strength of the second axion potential term relative to the other axion potential.
+
+    Returns
+    -------
+    potential : npt.NDArray[np.float32]
+        the axion potential terms of the full companion axion potential.
+    """
+    potential = -2 * K * np.cos(n * phi_phase + n_prime * psi_phase)
+    potential += -2 * kappa * K * np.cos(m * phi_phase + m_prime * psi_phase)
+
+    return potential
+
+
 def potential_derivative_ca_phi1(
     phi_real: npt.NDArray[np.float32],
     phi_imaginary: npt.NDArray[np.float32],
@@ -823,17 +928,21 @@ def plot_companion_axion_simulation(
             file_name="companion_axion",
             nrows=1,
             ncols=2,
-            figsize=(720, 480),
+            figsize=(2 * 480 + 100, 480),
             title_flag=False,
         ),
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(
-        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+        vmin=-np.pi,
+        vmax=np.pi,
+        cmap="twilight_shifted",
+        colorbar_flag=True,
+        colorbar_label=r"$\theta$",
     )
     highlight_settings = ImageConfig(
-        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False
+        vmin=-1, vmax=1, cmap="summer", colorbar_flag=False, colorbar_label=None
     )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"
@@ -947,22 +1056,23 @@ def plot_companion_axion_simulation(
         # plot_api.draw_image(
         #     phi_domain_walls_masked, image_extents, 0, 1, highlight_settings
         # )
-        plot_api.remove_axis_ticks("both", 0)
+        # plot_api.remove_axis_ticks("both", 0)
+        plot_api.set_axes_labels("x (comoving)", "y (comoving)", 0)
         plot_api.set_title(r"$\theta$", 0)
-        # plot_api.draw_scatter(
-        #     dx * positive_phi_strings[1],
-        #     dx * positive_phi_strings[0],
-        #     0,
-        #     0,
-        #     positive_string_settings,
-        # )
-        # plot_api.draw_scatter(
-        #     dx * negative_phi_strings[1],
-        #     dx * negative_phi_strings[0],
-        #     0,
-        #     1,
-        #     negative_string_settings,
-        # )
+        plot_api.draw_scatter(
+            dx * positive_phi_strings[1],
+            dx * positive_phi_strings[0],
+            0,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            dx * negative_phi_strings[1],
+            dx * negative_phi_strings[0],
+            0,
+            1,
+            negative_string_settings,
+        )
 
         display_strings = False
 
@@ -987,22 +1097,23 @@ def plot_companion_axion_simulation(
         # plot_api.draw_image(
         #     psi_domain_walls_masked, image_extents, 1, 1, highlight_settings
         # )
-        plot_api.remove_axis_ticks("both", 1)
+        # plot_api.remove_axis_ticks("both", 1)
+        plot_api.set_axes_labels("x (comoving)", "y (comoving)", 1)
         plot_api.set_title(r"$\theta'$", 1)
-        # plot_api.draw_scatter(
-        #     dx * positive_psi_strings[1],
-        #     dx * positive_psi_strings[0],
-        #     1,
-        #     0,
-        #     positive_string_settings,
-        # )
-        # plot_api.draw_scatter(
-        #     dx * negative_psi_strings[1],
-        #     dx * negative_psi_strings[0],
-        #     1,
-        #     1,
-        #     negative_string_settings,
-        # )
+        plot_api.draw_scatter(
+            dx * positive_psi_strings[1],
+            dx * positive_psi_strings[0],
+            1,
+            0,
+            positive_string_settings,
+        )
+        plot_api.draw_scatter(
+            dx * negative_psi_strings[1],
+            dx * negative_psi_strings[0],
+            1,
+            1,
+            negative_string_settings,
+        )
         # # Psi count
         # if display_strings:
         #     plot_api.draw_plot(run_time_x_axis, psi_string_count, 3, 0, line_settings)

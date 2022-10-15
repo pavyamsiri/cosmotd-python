@@ -258,8 +258,8 @@ def evolve_acceleration(
 
 
 def calculate_energy(
-    field: npt.NDArray[np.float32],
-    velocity: npt.NDArray[np.float32],
+    fields: list[npt.NDArray[np.float32]],
+    velocities: list[npt.NDArray[np.float32]],
     potential: npt.NDArray[np.float32],
     dx: float,
 ) -> npt.NDArray[np.float32]:
@@ -267,10 +267,10 @@ def calculate_energy(
 
     Parameters
     ----------
-    field : npt.NDArray[np.float32]
-        the field.
-    velocity : npt.NDArray[np.float32]
-        the velocity of the field.
+    fields : list[npt.NDArray[np.float32]]
+        the fields.
+    velocities : list[npt.NDArray[np.float32]]
+        the velocities of the fields.
     potential : npt.NDArray[np.float32]
         the potential acting on the field.
     eta : float
@@ -283,10 +283,13 @@ def calculate_energy(
     energy : npt.NDArray[np.float32]
         the energy of the field.
     """
-    # # Kinetic energy
-    energy = 0.5 * velocity**2
-    # # Gradient energy
-    energy += 0.5 * laplacian2D_iterative(field, dx)
+    energy = 0
+    # Kinetic energy
+    for velocity in velocities:
+        energy += 0.5 * velocity**2
+    # Gradient energy
+    for field in fields:
+        energy += 0.5 * laplacian2D_iterative(field, dx)
     # Potential energy
     energy += potential
     return energy

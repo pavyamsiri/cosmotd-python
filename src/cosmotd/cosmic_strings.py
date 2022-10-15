@@ -20,6 +20,36 @@ from .fields import evolve_acceleration, evolve_field, evolve_velocity
 from .plot import Plotter, PlotterConfig, ImageConfig, LineConfig
 
 
+def potential_cs(
+    phi_real: npt.NDArray[np.float32],
+    phi_imaginary: npt.NDArray[np.float32],
+    eta: float,
+    lam: float,
+) -> npt.NDArray[np.float32]:
+    """Calculates the cosmic string potential.
+
+    Parameters
+    ----------
+    phi_real : npt.NDArray[np.float32]
+        the real part of the field phi.
+    phi_imaginary : npt.NDArray[np.float32]
+        the imaginary part of the field phi.
+    eta : float
+        the location of the symmetry broken minima.
+    lam : float
+        the 'mass' of the field. Related to the width `w` of the walls by the equation lambda = 2*pi^2/w^2.
+
+    Returns
+    -------
+    potential : npt.NDArray[np.float32]
+        the cosmic string potential.
+    """
+
+    potential = lam / 4 * (phi_real**2 + phi_imaginary**2 - eta**2) ** 2
+
+    return potential
+
+
 def potential_derivative_cs(
     field: npt.NDArray[np.float32],
     other_field: npt.NDArray[np.float32],
@@ -228,7 +258,11 @@ def plot_cosmic_string_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(
-        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+        vmin=-np.pi,
+        vmax=np.pi,
+        cmap="twilight_shifted",
+        colorbar_flag=True,
+        colorbar_label=r"$\theta$",
     )
     positive_string_settings = ScatterConfig(
         marker="o", linewidths=0.5, facecolors="none", edgecolors="red"

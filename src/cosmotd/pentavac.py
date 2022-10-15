@@ -416,12 +416,18 @@ def plot_pentavac_simulation(
         lambda x: pbar.update(x),
     )
     # Configure settings for drawing
-    draw_settings = ImageConfig(vmin=0, vmax=4, cmap="viridis", colorbar_flag=True)
+    draw_settings = ImageConfig(
+        vmin=0, vmax=4, cmap="viridis", colorbar_flag=True, colorbar_label=None
+    )
     domain_wall_settings = ImageConfig(
-        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True
+        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True, colorbar_label=None
     )
     angle_settings = ImageConfig(
-        vmin=-np.pi, vmax=np.pi, cmap="twilight_shifted", colorbar_flag=True
+        vmin=-np.pi,
+        vmax=np.pi,
+        cmap="twilight_shifted",
+        colorbar_flag=True,
+        colorbar_label=None,
     )
     image_extents = (0, dx * M, 0, dx * M)
 

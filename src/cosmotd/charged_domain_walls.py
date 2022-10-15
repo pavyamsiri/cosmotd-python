@@ -334,10 +334,18 @@ def plot_charged_domain_wall_simulation(
         lambda x: pbar.update(x),
     )
     phi_draw_settings = ImageConfig(
-        vmin=-1.1 * eta_phi, vmax=1.1 * eta_phi, cmap="viridis", colorbar_flag=True
+        vmin=-1.1 * eta_phi,
+        vmax=1.1 * eta_phi,
+        cmap="viridis",
+        colorbar_flag=True,
+        colorbar_label=r"$\phi$",
     )
     sigma_draw_settings = ImageConfig(
-        vmin=-1.1 * eta_sigma, vmax=1.1 * eta_sigma, cmap="viridis", colorbar_flag=True
+        vmin=-1.1 * eta_sigma,
+        vmax=1.1 * eta_sigma,
+        cmap="viridis",
+        colorbar_flag=True,
+        colorbar_label=r"$\sigma$",
     )
     image_extents = (0, dx * M, 0, dx * N)
 

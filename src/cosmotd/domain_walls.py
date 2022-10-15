@@ -195,10 +195,14 @@ def plot_domain_wall_simulation(
     )
     # Configure settings for drawing
     draw_settings = ImageConfig(
-        vmin=-1.1 * eta, vmax=1.1 * eta, cmap="viridis", colorbar_flag=True
+        vmin=-1.1 * eta,
+        vmax=1.1 * eta,
+        cmap="viridis",
+        colorbar_flag=True,
+        colorbar_label=r"$\phi$",
     )
     highlight_settings = ImageConfig(
-        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True
+        vmin=-1, vmax=1, cmap="seismic", colorbar_flag=True, colorbar_label=None
     )
     line_settings = LineConfig(color="#1f77b4", linestyle="-")
     image_extents = (0, dx * M, 0, dx * N)
@@ -237,7 +241,7 @@ def plot_domain_wall_simulation(
         domain_walls_masked = np.ma.masked_values(domain_walls, 0)
 
         # Calculate the energy ratio
-        energy = calculate_energy(phi, phidot, potential_dw(phi, eta, lam), dx)
+        energy = calculate_energy([phi], [phidot], potential_dw(phi, eta, lam), dx)
         energy_ratio = np.ma.sum(
             np.ma.masked_where(np.ma.getmask(domain_walls_masked), energy)
         )
