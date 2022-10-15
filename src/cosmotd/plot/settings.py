@@ -48,6 +48,7 @@ class ImageConfig(NamedTuple):
     vmax: float
     cmap: str
     colorbar_flag: bool
+    colorbar_label: str | None
 
 
 class LineConfig(NamedTuple):

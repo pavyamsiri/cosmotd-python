@@ -11,7 +11,7 @@ import numpy as np
 from numpy import typing as npt
 
 # Internal modules
-from cosmotd.plot.plotter import DPI, PLOT_CACHE, VIDEO_CACHE
+from cosmotd.plot.plotter import DPI, PLOT_FOLDER, VIDEO_FOLDER
 from cosmotd.plot.plotter import Plotter
 from cosmotd.plot.settings import ImageConfig, LineConfig, PlotterConfig, ScatterConfig
 from cosmotd.plot.mpl_plotter.mpl_png_plotter import SUB_TO_ROOT
@@ -229,6 +229,18 @@ class RemoveAxisTicksCommand(NamedTuple):
     axis_index: int
 
 
+class SetFontSizeCommand(NamedTuple):
+    """A structure that contains the necessary information to set the font size.
+
+    Attributes
+    ----------
+    font_size : int
+        the size of the font.
+    """
+
+    font_size: int
+
+
 class EndFrameCommand(NamedTuple):
     """A structure used to signify the end of a frame. It contains the frame number of the ended frame.
 
@@ -313,6 +325,7 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                         ax=axes[axis_index],
                         fraction=0.046,
                         pad=0.04,
+                        label=image_config.colorbar_label,
                     )
             # Otherwise set the data of the image to the new data
             else:
@@ -388,6 +401,16 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
                 axes[axis_index].get_xaxis().set_ticks([])
             if axis == "both" or axis == "y":
                 axes[axis_index].get_yaxis().set_ticks([])
+        # Set font size
+        elif isinstance(command, SetFontSizeCommand):
+            mpl.rc("font", size=command.font_size)
+            mpl.rc("legend", fontsize=command.font_size)
+            mpl.rc("figure", titlesize=command.font_size)
+            # NOTE: This is super hacky. Not sure why setting rc doesn't work.
+            for ax in axes:
+                ax.tick_params(axis="both", labelsize=command.font_size)
+                ax.set_xlabel(ax.get_xlabel(), fontsize=command.font_size)
+                ax.set_ylabel(ax.get_ylabel(), fontsize=command.font_size)
         # End frame
         elif isinstance(command, EndFrameCommand):
             # Save as png
@@ -395,7 +418,7 @@ def plotting_job(count: int, settings: PlotterConfig, commands: list):
             fig.canvas.draw()
             # Construct file name
             src_folder = os.path.dirname(os.path.realpath(__file__))
-            file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_{command.frame_number}.png"
+            file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_FOLDER}/frame_{command.frame_number}.png"
 
             # Save figure as png
             fig.savefig(
@@ -425,7 +448,7 @@ class MplMultiPlotter(Plotter):
 
         # Delete frames in plot_cache
         src_folder = os.path.dirname(os.path.realpath(__file__))
-        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_*.png"
+        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_FOLDER}/frame_*.png"
         for plot_file in glob.glob(file_name):
             os.remove(plot_file)
 
@@ -466,8 +489,8 @@ class MplMultiPlotter(Plotter):
         # Create mp4
         # Construct file names
         src_folder = os.path.dirname(os.path.realpath(__file__))
-        input_file_template = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_%d.png"
-        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_CACHE}/{self._file_name}.mp4"
+        input_file_template = f"{src_folder}{SUB_TO_ROOT}{PLOT_FOLDER}/frame_%d.png"
+        output_file = f"{src_folder}{SUB_TO_ROOT}{VIDEO_FOLDER}/{self._file_name}.mp4"
         (
             ffmpeg.input(
                 input_file_template,
@@ -551,6 +574,9 @@ class MplMultiPlotter(Plotter):
 
     def remove_axis_ticks(self, axis: str, axis_index: int):
         self._commands.append(RemoveAxisTicksCommand(axis, axis_index))
+
+    def set_font_size(self, font_size: int):
+        self._commands.append(SetFontSizeCommand(font_size))
 
     def _submit_command_queue(self):
         """Submits the command queue to a process in the process pool to be executed."""

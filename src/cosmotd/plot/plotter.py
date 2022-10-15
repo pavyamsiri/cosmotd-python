@@ -9,8 +9,8 @@ from .settings import PlotterConfig, LineConfig, ImageConfig, ScatterConfig
 
 """Constants"""
 DPI: int = 100
-PLOT_CACHE: str = "data/plot_cache"
-VIDEO_CACHE: str = "data/video_cache"
+PLOT_FOLDER: str = "data/plot_cache"
+VIDEO_FOLDER: str = "data/video_cache"
 
 
 class Plotter:
@@ -236,5 +236,15 @@ class Plotter:
             the axis to operate on. Allowed choices are "both", "x" and "y".
         axis_index : int
             the index of the set of axes to operate on.
+        """
+        pass
+
+    def set_font_size(self, font_size: int):
+        """Sets the font size for all text.
+
+        Parameters
+        ----------
+        font_size : int
+            the size of the font.
         """
         pass

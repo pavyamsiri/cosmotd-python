@@ -96,6 +96,7 @@ class MplPlotter(Plotter):
                     ax=self._axes[axis_index],
                     fraction=0.046,
                     pad=0.04,
+                    label=image_config.colorbar_label,
                 )
         # Otherwise set the data of the image to the new data
         else:
@@ -184,3 +185,6 @@ class MplPlotter(Plotter):
             self._axes[axis_index].get_xaxis().set_ticks([])
         if axis == "both" or axis == "y":
             self._axes[axis_index].get_yaxis().set_ticks([])
+
+    def set_font_size(self, font_size: int):
+        plt.rc("font", size=font_size)

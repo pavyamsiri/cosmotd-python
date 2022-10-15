@@ -7,7 +7,7 @@ import matplotlib as mpl
 from matplotlib import pyplot as plt
 
 # Internal modules
-from cosmotd.plot.plotter import PLOT_CACHE
+from cosmotd.plot.plotter import PLOT_FOLDER
 from cosmotd.plot.mpl_plotter.mpl_plotter import MplPlotter
 from cosmotd.plot.settings import PlotterConfig
 
@@ -27,7 +27,7 @@ class MplPngPlotter(MplPlotter):
 
         # Delete frames in plot_cache
         src_folder = os.path.dirname(os.path.realpath(__file__))
-        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_*.png"
+        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_FOLDER}/frame_*.png"
         for plot_file in glob.glob(file_name):
             os.remove(plot_file)
 
@@ -42,7 +42,7 @@ class MplPngPlotter(MplPlotter):
         self._fig.canvas.draw()
         # Construct file name
         src_folder = os.path.dirname(os.path.realpath(__file__))
-        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_CACHE}/frame_{self._count}.png"
+        file_name = f"{src_folder}{SUB_TO_ROOT}{PLOT_FOLDER}/frame_{self._count}.png"
 
         # Save figure as png
         self._fig.savefig(
